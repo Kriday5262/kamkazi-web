@@ -29,7 +29,10 @@ function json(body: unknown, status = 200): Response {
 
 /** Resolve a server-relative path and verify it stays inside the user's tree. */
 function safeResolve(uid: string, rel: string): string | null {
-  const abs = path.resolve(ROOT, rel.replace(/^\/+/, ""));
+  // Path is stored as "/attachments/<uid>/..." — strip the leading segment
+  // before resolving against ROOT.
+  const cleaned = rel.replace(/^\/+/, "").replace(/^attachments\//, "");
+  const abs = path.resolve(ROOT, cleaned);
   const root = path.resolve(ROOT, uid);
   if (abs !== root && !abs.startsWith(root + path.sep)) return null;
   return abs;

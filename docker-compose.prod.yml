@@ -18,6 +18,9 @@ services:
     image: kamkazi-app
     container_name: kamkazi-app
     restart: unless-stopped
+    volumes:
+      # Phase 2 — real task attachments live on the NAS share.
+      - /media/HIKVISION/Shantanu/Work/Kamkazi/Attachments:/app/attachments:rw
     environment:
       NODE_ENV: production
       NITRO_PORT: "8086"

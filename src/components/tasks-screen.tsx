@@ -128,7 +128,7 @@ export function TaskRow({
 /** Smart views: /tasks (all), /tasks/upcoming, /tasks/today. */
 export const SMART_TASK_VIEWS = ["today", "upcoming"] as const;
 
-export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFilter?: string }) {
+export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFilter?: string | undefined }) {
   const { tasks, addTask } = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
