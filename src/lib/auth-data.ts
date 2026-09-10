@@ -189,40 +189,45 @@ function mapNote(n: typeof notes.$inferSelect): Note {
 
 export const saveTask = createServerFn({ method: "POST" })
   .middleware([requestMiddleware])
-  .validator((input: { task: Task }) => input)
+  .validator((input: { task: Task; nextTask?: Task | undefined }) => input)
   .handler(async ({ data, context }) => {
     const uid = await requireUid(context);
-    const t = data.task;
-    const values = {
-      userId: uid,
-      listId: t.listId,
-      title: t.title,
-      notes: t.notes ?? null,
-      done: t.done,
-      dueDate: t.dueDate ?? null,
-      dueTime: t.dueTime ?? null,
-      reminder: t.reminder ?? null,
-      repeat: t.repeat ?? null,
-      priority: t.priority,
-      tags: t.tags,
-      subtasks: t.subtasks,
-      attachments: t.attachments,
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt,
-      updatedAtTs: new Date(),
-    };
-    const existing = await db
-      .select({ id: tasks.id })
-      .from(tasks)
-      .where(and(eq(tasks.id, t.id), eq(tasks.userId, uid)));
-    if (existing.length === 0) {
-      await db.insert(tasks).values({ id: t.id, ...values });
-    } else {
-      await db
-        .update(tasks)
-        .set(values)
+    const write = async (t: Task) => {
+      const values = {
+        userId: uid,
+        listId: t.listId,
+        title: t.title,
+        notes: t.notes ?? null,
+        done: t.done,
+        dueDate: t.dueDate ?? null,
+        dueTime: t.dueTime ?? null,
+        reminder: t.reminder ?? null,
+        repeat: t.repeat ?? null,
+        priority: t.priority,
+        tags: t.tags,
+        subtasks: t.subtasks,
+        attachments: t.attachments,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        updatedAtTs: new Date(),
+      };
+      const existing = await db
+        .select({ id: tasks.id })
+        .from(tasks)
         .where(and(eq(tasks.id, t.id), eq(tasks.userId, uid)));
-    }
+      if (existing.length === 0) {
+        await db.insert(tasks).values({ id: t.id, ...values });
+      } else {
+        await db
+          .update(tasks)
+          .set(values)
+          .where(and(eq(tasks.id, t.id), eq(tasks.userId, uid)));
+      }
+    };
+    await write(data.task);
+    // Optional companion row written in the SAME request (e.g. the next
+    // occurrence of a repeating task) — guarantees single-call semantics.
+    if (data.nextTask) await write(data.nextTask);
     return { ok: true };
   });
 

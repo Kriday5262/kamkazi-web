@@ -5,7 +5,6 @@ import { TODAY, dayOffset, type Task } from "@/data/seed";
 import { EmptyState } from "@/components/primitives";
 import { TaskCheckbox } from "@/components/primitives";
 import { AgendaList, buildAgenda, type AgendaLiveEvent } from "@/components/agenda-list";
-import { AgendaGroupsView } from "@/components/agenda-groups";
 import { TaskDetail } from "@/components/task-detail";
 import { EventDetail } from "@/components/event-detail";
 import type { DatedEvent } from "@/data/seed";
@@ -109,7 +108,7 @@ function subColour(name: string): string {
   return palette[h % palette.length] ?? "blue";
 }
 
-type ViewMode = "month" | "week" | "day" | "agenda";
+type ViewMode = "month" | "week" | "day";
 
 export function CalendarScreen() {
   const { tasks, addTask, settings } = useStore();
@@ -306,6 +305,19 @@ export function CalendarScreen() {
     [tasks, today],
   );
 
+  // Day view: open tasks whose due date is BEFORE the selected date float to the
+  // top of the plan as overdue (pinned) when viewing a LATER date; on/after the
+  // due date they stay in place (overdueTasks above / red time covers today).
+  const overduePinIds = useMemo(
+    () =>
+      new Set(
+        tasks
+          .filter((t) => !t.done && t.dueDate && t.dueDate < today && t.dueDate < selected)
+          .map((t) => t.id),
+      ),
+    [tasks, today, selected],
+  );
+
   const selectedTasks = dayTasks(selected);
   const selectedEvents = dayEvents(selected);
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
@@ -369,14 +381,12 @@ export function CalendarScreen() {
               <p className="mt-1 truncate text-[13px] font-medium text-muted-foreground">
                 {view === "day"
                   ? "Agenda — events + tasks"
-                  : view === "agenda"
-                    ? "Everything — unplanned, overdue & upcoming"
-                    : longDate(selected)}
+                  : longDate(selected)}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-[var(--shadow-panel)]">
-                {(["agenda", "day", "week", "month"] as ViewMode[]).map((m) => (
+                {(["day", "week", "month"] as ViewMode[]).map((m) => (
                   <button
                     key={m}
                     type="button"
@@ -450,95 +460,8 @@ export function CalendarScreen() {
               {view === "day" ? (
                 <UnplannedPanel tasks={tasks} onSelect={(id) => setSelectedTaskIdState(id)} />
               ) : null}
-              {/* Day view filler: this-week mini strip + selected-day agenda beside the plan */}
-              {view === "day" ? (
-                <>
-                  <section className="panel animate-fade-up p-2.5" aria-label="This week strip">
-                    <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                      This week
-                    </p>
-                    <div className="grid grid-cols-7">
-                      {(function weekDates() {
-                        const base = new Date(today + "T00:00:00");
-                        const back = (base.getUTCDay() - weekStart + 7) % 7;
-                        const anchor = new Date(base);
-                        anchor.setUTCDate(base.getUTCDate() - back);
-                        return Array.from({ length: 7 }, (_, i) => {
-                          const d = new Date(anchor);
-                          d.setUTCDate(anchor.getUTCDate() + i);
-                          const date = d.toISOString().slice(0, 10);
-                          const isSel = date === selected;
-                          const isT = date === today;
-                          const n = Number(date.slice(8));
-                          const evs = dayEvents(date);
-                          const tks = dayTasks(date);
-                          const dots = [
-                            ...new Set(evs.map((e) => subColour(e.calendar))),
-                            tks.length ? "task" : null,
-                          ].filter(Boolean) as string[];
-                          return (
-                            <button
-                              key={date}
-                              type="button"
-                              onClick={() => setSelected(date)}
-                              aria-pressed={isSel}
-                              aria-label={longDate(date)}
-                              className="tap flex flex-col items-center gap-0.5 rounded-[12px] py-1 transition-colors hover:bg-surface-2/70"
-                            >
-                              <span
-                                className={cn(
-                                  "num grid size-8 place-items-center rounded-full text-[13px] font-semibold",
-                                  isSel
-                                    ? "gradient-primary text-primary-foreground shadow-[var(--shadow-3d)]"
-                                    : isT
-                                      ? "text-primary"
-                                      : "text-foreground",
-                                )}
-                              >
-                                {n}
-                              </span>
-                              <span className="flex h-1.5 items-center gap-[3px]">
-                                {dots.map((c, j) => (
-                                  <span
-                                    key={j}
-                                    className={cn(
-                                      "size-1 rounded-full",
-                                      c === "task" ? "bg-accent-amber" : COLOUR_CLASS[c],
-                                    )}
-                                    aria-hidden
-                                  />
-                                ))}
-                              </span>
-                            </button>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </section>
-                  {/* Selected-day agenda list (events + tasks) — fills the left column */}
-                  <section className="panel animate-fade-up p-2.5" aria-label="Day agenda sidebar">
-                    <p className="px-1 pb-1.5 text-[12.5px] font-bold tracking-tight">
-                      {selected === today ? "Today" : longDate(selected)}
-                    </p>
-                    {agenda.length === 0 && overdueTasks.length === 0 ? (
-                      <p className="px-1 pb-1 pt-1 text-[12.5px] text-muted-foreground">
-                        Nothing planned — a free day.
-                      </p>
-                    ) : (
-                      <div className="-mx-0.5">
-                        <AgendaList
-                          agenda={agenda}
-                          overdue={overdueTasks}
-                          onSelectEvent={(id) => setSelectedEventId(id)}
-                          onSelectTask={(id) => setSelectedTaskIdState(id)}
-                        />
-                      </div>
-                    )}
-                  </section>
-                </>
-              ) : null}
               {/* calendar grid (month) / week strip */}
-              {view !== "day" && view !== "agenda" ? (
+              {view !== "day" ? (
                 <section className="panel animate-fade-up p-2.5" aria-label="Calendar grid">
                   <div className="grid grid-cols-7 pb-1">
                     {WEEKDAYS.map((_, i) => WEEKDAYS[(i + weekStart) % 7]).map((d, i) => (
@@ -606,41 +529,12 @@ export function CalendarScreen() {
                   </div>
                 </section>
               ) : null}
+              {/* Week/Month views: Unplanned panel BELOW the calendar */}
+              {view === "week" || view === "month" ? (
+                <UnplannedPanel tasks={tasks} onSelect={(id) => setSelectedTaskIdState(id)} />
+              ) : null}
             </div>
-
-            {/* master agenda view / agenda / day plan */}
-            {view === "agenda" ? (
-              <section
-                className="min-w-0"
-                aria-label="Master agenda — all tasks and events grouped"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-[16px] font-bold tracking-tight">All open</h2>
-                </div>
-                {loading ? (
-                  <div className="panel px-3 py-4 text-[13px] text-muted-foreground">
-                    Loading calendar…
-                  </div>
-                ) : (
-                  <AgendaGroupsView
-                    events={allEvents.map((e) => ({
-                      id: e.id,
-                      title: e.title,
-                      date: e.date,
-                      start: e.start,
-                      allDay: e.allDay,
-                      location: e.location,
-                      calendar: e.calendar,
-                      colour: e.colour,
-                    }))}
-                    weekStartsOn={weekStart}
-                    onSelectTask={(id) => setSelectedTaskIdState(id)}
-                    onSelectEvent={(id) => setSelectedEventId(id)}
-                  />
-                )}
-              </section>
-            ) : (
-              <section className="min-w-0" aria-label="Agenda for selected day">
+            <section className="min-w-0" aria-label="Agenda for selected day">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-[16px] font-bold tracking-tight">
                     {selected === today ? "Today" : longDate(selected)}
@@ -648,8 +542,9 @@ export function CalendarScreen() {
                   <button
                     type="button"
                     onClick={() => {
-                      setEditorFor("new");
-                      setEditorDate(selected);
+                      // Open (and focus) the quick-capture input to add a TASK due selected day.
+                      setCaptureOpen(true);
+                      window.setTimeout(() => captureRef.current?.focus(), 50);
                     }}
                     className="tap text-[12.5px] font-semibold text-primary hover:underline"
                   >
@@ -672,6 +567,8 @@ export function CalendarScreen() {
                     agenda={agenda}
                     overdue={selected === today ? overdueTasks : undefined}
                     timePastIds={selected === today ? timePastIds : undefined}
+                    overduePinIds={overduePinIds}
+                    showNowLine={selected === today}
                     onSelectEvent={(id) => setSelectedEventId(id)}
                     onSelectTask={(id) => setSelectedTaskIdState(id)}
                     onEditEvent={(ev) => setEditorFor(ev)}
@@ -703,8 +600,7 @@ export function CalendarScreen() {
                     className="w-full bg-transparent text-[14px] font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
                   />
                 </form>
-              </section>
-            )}
+            </section>
           </div>
 
           <div className="h-10" />

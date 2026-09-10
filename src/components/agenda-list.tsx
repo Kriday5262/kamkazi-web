@@ -3,6 +3,7 @@
  * Used by both the Calendar screen's day view and the Today page's Agenda
  * section (extracted from calendar-screen.tsx's inline agenda rendering).
  */
+import { Fragment } from "react";
 import { CalendarDays, Trash2, Pencil } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { EmptyState, TaskCheckbox } from "@/components/primitives";
@@ -44,6 +45,8 @@ function eventColour(e: { calendar: string; colour?: string | undefined }): stri
 export interface AgendaItem {
   key: string;
   min: number;
+  /** Minutes since midnight the event ENDS (start + duration) — for past-due fading. */
+  endMin?: number | undefined;
   task?: Task;
   event?: AgendaLiveEvent;
 }
@@ -54,8 +57,12 @@ export function buildAgenda(events: AgendaLiveEvent[], tasks: Task[], date: stri
     return (h || 0) * 60 + (m || 0);
   };
   const items: AgendaItem[] = [];
-  for (const e of events.filter((e) => e.date === date))
-    items.push({ key: e.id, min: e.allDay || !e.start ? -1 : minutesOf(e.start), event: e });
+  for (const e of events.filter((e) => e.date === date)) {
+    const startMin = e.allDay || !e.start ? -1 : minutesOf(e.start);
+    const endMin =
+      e.allDay || !e.start ? -1 : startMin + Math.max(1, e.durationMin ?? 30);
+    items.push({ key: e.id, min: startMin, endMin, event: e });
+  }
   for (const t of tasks.filter((t) => t.dueDate === date))
     items.push({ key: t.id, min: t.dueTime ? minutesOf(t.dueTime) : 24 * 60, task: t });
   return items.sort((a, b) => a.min - b.min);
@@ -65,6 +72,8 @@ export function AgendaList({
   agenda,
   overdue,
   timePastIds,
+  overduePinIds,
+  showNowLine,
   onSelectEvent,
   onSelectTask,
   onEditEvent,
@@ -77,6 +86,14 @@ export function AgendaList({
   overdue?: Task[] | undefined;
   /** Today's tasks whose time has passed -> red time in the timeline (stay in place). */
   timePastIds?: Set<string> | undefined;
+  /**
+   * Tasks that should float to the TOP of the day plan as overdue (red) —
+   * open tasks whose due date is BEFORE the viewed date but not yet done
+   * (viewing a later date than the due date). Hidden from their own slot.
+   */
+  overduePinIds?: Set<string> | undefined;
+  /** Render a red "current time" marker row at the now position (Today only). */
+  showNowLine?: boolean | undefined;
   onSelectEvent: (id: string) => void;
   onSelectTask: (id: string) => void;
   onEditEvent?: (event: AgendaLiveEvent) => void;
@@ -84,7 +101,27 @@ export function AgendaList({
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
-  if (agenda.length === 0 && !(overdue && overdue.length > 0)) {
+  const pinned = overduePinIds
+    ? agenda
+        .filter((i) => i.task && overduePinIds.has(i.task.id))
+        .map((i) => i.task!)
+    : [];
+  const rest = overduePinIds
+    ? agenda.filter((i) => !(i.task && overduePinIds.has(i.task.id)))
+    : agenda;
+  // Red "current time" marker position: index in `rest` of the first item at or
+  // after the current time (rest.length = after everything, when nothing remains).
+  const nowLineMin = showNowLine ? nowMinutes() : -1;
+  const nowLineAt =
+    showNowLine && nowLineMin >= 0
+      ? Math.max(
+          0,
+          rest.findIndex((i) => i.min >= nowLineMin) === -1
+            ? rest.length
+            : rest.findIndex((i) => i.min >= nowLineMin),
+        )
+      : -1;
+  if (rest.length === 0 && pinned.length === 0 && !(overdue && overdue.length > 0)) {
     return (
       <EmptyState
         icon={<CalendarDays className="size-5" aria-hidden />}
@@ -95,50 +132,99 @@ export function AgendaList({
   }
   return (
     <div className="panel px-2 py-2">
-      {overdue && overdue.length > 0 ? (
+      {(overdue && overdue.length > 0) || pinned.length > 0 ? (
         <>
           <div className="px-1 pb-1 pt-1.5">
             <span className="text-[13px] font-bold tracking-tight text-destructive">Overdue</span>
-            <span className="num ml-2 text-[11px] font-semibold text-destructive/70">{overdue.length}</span>
+            <span className="num ml-2 text-[11px] font-semibold text-destructive/70">
+              {(overdue?.length ?? 0) + pinned.length}
+            </span>
           </div>
-          {overdue.map((t) => (
+          {overdue?.map((t) => (
+            <AgendaTaskRow key={t.id} task={t} onSelect={() => onSelectTask(t.id)} overdue />
+          ))}
+          {pinned.map((t) => (
             <AgendaTaskRow key={t.id} task={t} onSelect={() => onSelectTask(t.id)} overdue />
           ))}
           <div className="mx-1 my-1.5 border-t border-border" />
         </>
       ) : null}
-      {agenda.map((item) =>
-        item.event ? (
-          <AgendaEventRow
-            key={item.key}
-            event={item.event}
-            onSelect={() => onSelectEvent(item.event!.id)}
-            onEdit={onEditEvent}
-            onDelete={onDeleteEvent}
-          />
-        ) : item.task ? (
-          <AgendaTaskRow
-            key={item.key}
-            task={item.task}
-            timePast={timePastIds?.has(item.task.id) ?? false}
-            onSelect={() => onSelectTask(item.task!.id)}
-          />
-        ) : null,
-      )}
+      {rest.map((item, idx) => (
+        <Fragment key={item.key}>
+          {showNowLine && nowLineMin >= 0 && nowLineAt === idx ? (
+            <NowLine />
+          ) : null}
+          {item.event ? (
+            <AgendaEventRow
+              event={item.event}
+              past={
+                typeof item.endMin === "number" &&
+                item.endMin >= 0 &&
+                item.endMin <= nowMinutes()
+              }
+              onSelect={() => onSelectEvent(item.event!.id)}
+              onEdit={onEditEvent}
+              onDelete={onDeleteEvent}
+            />
+          ) : item.task ? (
+            <AgendaTaskRow
+              task={item.task}
+              timePast={timePastIds?.has(item.task.id) ?? false}
+              onSelect={() => onSelectTask(item.task!.id)}
+            />
+          ) : null}
+        </Fragment>
+      ))}
+      {showNowLine && nowLineMin >= 0 && nowLineAt === rest.length ? <NowLine /> : null}
     </div>
   );
 }
+
+/** Current local time-of-day in minutes (device clock, matches isTimePast). */
+function nowMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+/** Red "current time" marker — thin line + small time label. */
+function NowLine() {
+  const now = new Date();
+  const h12 = now.getHours() % 12 === 0 ? 12 : now.getHours() % 12;
+  const label = `${h12}:${String(now.getMinutes()).padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+  return (
+    <div className="relative my-1 flex items-center gap-1.5" aria-label={"Current time " + label}>
+      <span className="tnum w-[96px] shrink-0 text-right text-[10.5px] font-semibold text-destructive">
+        {label}
+      </span>
+      <span className="h-[2px] min-w-0 flex-1 rounded-full bg-destructive/80" aria-hidden />
+    </div>
+  );
+}
+
+/** Compact date for one-line metas: "Tue, Sep 8" (never wraps). */
+function compactDate(iso?: string | undefined): string {
+  if (!iso) return "No date";
+  const d = new Date(`${iso}T00:00:00`);
+  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  if (iso === TODAY_COMPACT) return "Today";
+  return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+const TODAY_COMPACT = new Date().toISOString().slice(0, 10);
 
 function AgendaEventRow({
   event,
   onSelect,
   onEdit,
   onDelete,
+  past = false,
 }: {
   event: AgendaLiveEvent;
   onSelect: () => void;
   onEdit?: ((event: AgendaLiveEvent) => void) | undefined;
   onDelete?: ((id: string) => void) | undefined;
+  /** Event's end time has passed -> faded like a completed task. */
+  past?: boolean;
 }) {
   return (
     <div
@@ -151,9 +237,12 @@ function AgendaEventRow({
           onSelect();
         }
       }}
-      className="group flex cursor-default gap-3 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-surface-2/60"
+      className={cn(
+        "group flex cursor-default gap-3 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-surface-2/60",
+        past && "opacity-50",
+      )}
     >
-      <span className="tnum w-[60px] shrink-0 pt-0.5 text-right text-[12.5px] text-muted-foreground">
+      <span className="tnum w-[96px] shrink-0 whitespace-nowrap pt-0.5 text-right text-[12px] text-muted-foreground">
         {event.allDay || !event.start ? "All day" : formatTime(event.start)}
       </span>
       <span
@@ -215,7 +304,7 @@ function AgendaTaskRow({ task, onSelect, overdue = false, timePast = false }: { 
   // "Overdue" rows show the actual due date in the time slot; planned rows show
   // relative date when the row's list isn't a single day (week/month/overdue lists).
   const metaLabel = task.dueDate
-    ? `${relativeDate(task.dueDate)}${task.dueTime ? ` · ${formatTime(task.dueTime)}` : ""}`
+    ? `${compactDate(task.dueDate)}${task.dueTime ? ` · ${formatTime(task.dueTime)}` : ""}`
     : "No date";
   return (
     <div
@@ -228,9 +317,9 @@ function AgendaTaskRow({ task, onSelect, overdue = false, timePast = false }: { 
           onSelect();
         }
       }}
-      className="flex w-full cursor-default gap-3 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-surface-2/60"
+      className="flex w-full cursor-default gap-2.5 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-surface-2/60"
     >
-      <span className={cn("tnum w-[60px] shrink-0 pt-0.5 text-right text-[12.5px]", overdue || timePast ? "font-semibold text-destructive" : "text-muted-foreground")}>
+      <span className={cn("tnum w-[96px] shrink-0 whitespace-nowrap pt-0.5 text-right text-[12px]", overdue || timePast ? "font-semibold text-destructive" : "text-muted-foreground")}>
         {task.dueTime ? formatTime(task.dueTime) : relativeDate(task.dueDate)}
       </span>
       <TaskCheckbox

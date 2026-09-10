@@ -300,6 +300,7 @@ export function TodayScreen() {
               agenda={agenda}
               overdue={tasks.filter((t) => !t.done && t.dueDate && t.dueDate < TODAY)}
               timePastIds={new Set(tasks.filter((t) => !t.done && isTimePast(t.dueDate, t.dueTime)).map((t) => t.id))}
+              showNowLine
               onSelectEvent={(id) => {
                 setSelectedId(null);
                 setSelectedEventId(id);

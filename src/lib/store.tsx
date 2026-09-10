@@ -243,12 +243,16 @@ export function StoreProvider({
       // Repeating task completed -> keep this instance done in place (visible
       // feedback) and spawn the NEXT occurrence on a future date. Toast confirms.
       if (nowDone && snapshot.repeat && ["daily", "weekly", "monthly", "yearly"].includes(snapshot.repeat)) {
+        // SINGLE saveTask call: persist THIS instance as done=true AND spawn
+        // the next occurrence in the same payload. One write, no race — the
+        // completed instance can no longer be clobbered or resurrected.
         let nextDue = snapshot.dueDate ?? TODAY;
         let guard = 0;
         do {
           nextDue = nextRepeatDate(nextDue, snapshot.repeat);
           guard += 1;
         } while (nextDue <= TODAY && guard < 366);
+        const completed: Task = { ...snapshot, done: true, updatedAt: TODAY };
         const clone: Task = {
           ...snapshot,
           id: uid(),
@@ -258,8 +262,13 @@ export function StoreProvider({
           updatedAt: TODAY,
         };
         setTasks((prev) => [clone, ...prev]);
-        saveTask({ data: { task: clone } }).catch(() => {
-          setTasks((prev) => prev.filter((t) => t.id !== clone.id));
+        saveTask({ data: { task: completed, nextTask: clone } }).catch(() => {
+          // Roll back both optimistic updates if the server write failed.
+          setTasks((prev) =>
+            prev
+              .filter((t) => t.id !== clone.id)
+              .map((t) => (t.id === id ? snapshot! : t)),
+          );
         });
         toast.success("Repeats " + snapshot.repeat + " - next on " + nextDue);
         return;
