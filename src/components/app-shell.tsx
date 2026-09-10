@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CalendarRange,
   Command,
+  HardDrive,
   Moon,
   NotebookPen,
   PanelLeftClose,
@@ -57,6 +58,13 @@ const NAV: { to: string; label: string; icon: LucideIcon; tint: string; bg: stri
     icon: Sparkles,
     tint: "text-accent-violet",
     bg: "bg-accent-violet/12",
+  },
+  {
+    to: "/files",
+    label: "Files",
+    icon: HardDrive,
+    tint: "text-accent-rose",
+    bg: "bg-accent-rose/12",
   },
   {
     to: "/settings",

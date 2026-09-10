@@ -2,6 +2,8 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   CalendarDays,
   CheckCircle2,
+  FileText,
+  Folder,
   ListTodo,
   MessageSquarePlus,
   Search,
@@ -42,6 +44,29 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Phase 4 — drive filename hits for the current query (fetched async).
+  const [fileHits, setFileHits] = useState<{ path: string; name: string; isDir: boolean }[]>([]);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (!q || q.length < 2) {
+      setFileHits([]);
+      return;
+    }
+    const ctl = new AbortController();
+    const t = setTimeout(() => {
+      fetch(`/api/files?op=search&q=${encodeURIComponent(q)}`, { signal: ctl.signal })
+        .then((r) => (r.ok ? r.json() : { results: [] }))
+        .then((d: { results?: { path: string; name: string; ext: string; isText?: boolean; isImage?: boolean }[] }) =>
+          setFileHits((d.results ?? []).slice(0, 5).map((f) => ({ path: f.path, name: f.name, isDir: false }))),
+        )
+        .catch(() => undefined);
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      ctl.abort();
+    };
+  }, [query]);
 
   useEffect(() => {
     if (paletteOpen) {
@@ -201,9 +226,23 @@ export function CommandPalette() {
         },
       }));
 
+    // Phase 4 — drive file name hits (fileHits state, fetched above).
+    const fileItems: Item[] = fileHits.map((f) => ({
+      id: `drivefile-${f.path}`,
+      label: f.name,
+      hint: "File",
+      group: "Files",
+      icon: FileText,
+      run: () => {
+        void navigate({ to: "/files" });
+        close();
+      },
+    }));
+
     return q
       ? [
           ...tagItems(tagSuggestions),
+          ...fileItems,
           ...taskItems,
           ...noteItems,
           ...eventItems,
@@ -212,7 +251,7 @@ export function CommandPalette() {
         ]
       : [...commands, ...taskItems.slice(0, 3), ...noteItems.slice(0, 3)];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, tasks, notes, conversations]);
+  }, [query, tasks, notes, conversations, fileHits]);
 
   if (!paletteOpen) return null;
 

@@ -483,6 +483,44 @@ export const TOOL_DEFINITIONS = [
       },
     },
   },
+  // Read-only file tools (Phase 4) — scoped to the drive root, never write.
+  {
+    type: "function",
+    function: {
+      name: "list_files",
+      description:
+        "List the user's personal drive files/folders, or search all file names. Read-only. Use for things like 'find my Kamkazi hero images'.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description: "Folder path to list (e.g. '/' or '/Work/Kamkazi'). Default '/'.",
+          },
+          search: {
+            type: "string",
+            description: "Optional: search all file names (recursive) for this text instead of listing.",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_file",
+      description:
+        "Read a text file from the user's personal drive (.md/.txt/code, max 200 KB) by path (from list_files). Read-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Full file path e.g. '/Work/Kamkazi/notes.md'" },
+        },
+        required: ["path"],
+      },
+    },
+  },
 ];
 
 export interface ToolExecution {
@@ -694,6 +732,37 @@ export async function executeTool(
         }
       }
       return { ok: false, summary: `Email ${msgId} not found in any email-enabled account.` };
+    }
+    case "list_files": {
+      const { listDir, walkFiles } = await import("@/server/files.server");
+      const search = args["search"] ? String(args["search"]).trim() : "";
+      if (search) {
+        const out: { path: string; name: string; ext: string }[] = [];
+        await walkFiles("/", { depth: 6, max: 400, out });
+        const hits = out.filter((f) => f.name.toLowerCase().includes(search.toLowerCase())).slice(0, 20);
+        if (hits.length === 0) return { ok: true, summary: `No files matching “${search}”.` };
+        return { ok: true, summary: hits.map((f) => `- ${f.path}`).join("\n") };
+      }
+      const listing = await listDir(String(args["path"] ?? "/"));
+      if (!listing) return { ok: false, summary: "Folder not found." };
+      if (listing.entries.length === 0) return { ok: true, summary: "That folder is empty." };
+      return {
+        ok: true,
+        summary: listing.entries
+          .slice(0, 40)
+          .map((e) => `- ${e.type === "dir" ? "[dir] " : ""}${e.name}${e.type === "file" ? ` (${e.sizeLabel})` : ""}`)
+          .join("\n"),
+      };
+    }
+    case "read_file": {
+      const { isTextExt, readTextFile } = await import("@/server/files.server");
+      const fp = String(args["path"] ?? "");
+      const ext = fp.toLowerCase().replace(/.*\./, "");
+      if (!isTextExt(ext))
+        return { ok: false, summary: "Only text files (.md/.txt/code) can be read. Images and PDFs open in the Files section." };
+      const res = await readTextFile(fp);
+      if (!res) return { ok: false, summary: "File not found or too large (200 KB cap)." };
+      return { ok: true, summary: `${fp}:\n\n${res.content}` };
     }
     default:
       return { ok: false, summary: `Unknown tool ${name}.` };

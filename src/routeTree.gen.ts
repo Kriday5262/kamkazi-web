@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as EmailRouteImport } from './routes/email'
+import { Route as FilesRouteImport } from './routes/files'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiAttachmentsRouteImport } from './routes/api/attachments'
@@ -24,6 +25,7 @@ import { Route as ApiEmailListRouteImport } from './routes/api/email-list'
 import { Route as ApiEmailReadRouteImport } from './routes/api/email-read'
 import { Route as ApiEmailSummarizeRouteImport } from './routes/api/email-summarize'
 import { Route as ApiExportNotesRouteImport } from './routes/api/export-notes'
+import { Route as ApiFilesRouteImport } from './routes/api/files'
 import { Route as ApiInboxOverviewRouteImport } from './routes/api/inbox-overview'
 import { Route as ApiPushRouteImport } from './routes/api/push'
 import { Route as ApiTodaySummaryRouteImport } from './routes/api/today-summary'
@@ -53,6 +55,11 @@ const CalendarRoute = CalendarRouteImport.update({
 const EmailRoute = EmailRouteImport.update({
   id: '/email',
   path: '/email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FilesRoute = FilesRouteImport.update({
+  id: '/files',
+  path: '/files',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -113,6 +120,11 @@ const ApiEmailSummarizeRoute = ApiEmailSummarizeRouteImport.update({
 const ApiExportNotesRoute = ApiExportNotesRouteImport.update({
   id: '/api/export-notes',
   path: '/api/export-notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesRoute = ApiFilesRouteImport.update({
+  id: '/api/files',
+  path: '/api/files',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiInboxOverviewRoute = ApiInboxOverviewRouteImport.update({
@@ -195,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
   '/email': typeof EmailRoute
+  '/files': typeof FilesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/api/attachments': typeof ApiAttachmentsRoute
@@ -207,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/api/email-read': typeof ApiEmailReadRoute
   '/api/email-summarize': typeof ApiEmailSummarizeRoute
   '/api/export-notes': typeof ApiExportNotesRoute
+  '/api/files': typeof ApiFilesRoute
   '/api/inbox-overview': typeof ApiInboxOverviewRoute
   '/api/push': typeof ApiPushRouteWithChildren
   '/api/today-summary': typeof ApiTodaySummaryRoute
@@ -227,6 +241,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
   '/email': typeof EmailRoute
+  '/files': typeof FilesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/api/attachments': typeof ApiAttachmentsRoute
@@ -239,6 +254,7 @@ export interface FileRoutesByTo {
   '/api/email-read': typeof ApiEmailReadRoute
   '/api/email-summarize': typeof ApiEmailSummarizeRoute
   '/api/export-notes': typeof ApiExportNotesRoute
+  '/api/files': typeof ApiFilesRoute
   '/api/inbox-overview': typeof ApiInboxOverviewRoute
   '/api/push': typeof ApiPushRouteWithChildren
   '/api/today-summary': typeof ApiTodaySummaryRoute
@@ -260,6 +276,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
   '/email': typeof EmailRoute
+  '/files': typeof FilesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/api/attachments': typeof ApiAttachmentsRoute
@@ -272,6 +289,7 @@ export interface FileRoutesById {
   '/api/email-read': typeof ApiEmailReadRoute
   '/api/email-summarize': typeof ApiEmailSummarizeRoute
   '/api/export-notes': typeof ApiExportNotesRoute
+  '/api/files': typeof ApiFilesRoute
   '/api/inbox-overview': typeof ApiInboxOverviewRoute
   '/api/push': typeof ApiPushRouteWithChildren
   '/api/today-summary': typeof ApiTodaySummaryRoute
@@ -294,6 +312,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calendar'
     | '/email'
+    | '/files'
     | '/login'
     | '/settings'
     | '/api/attachments'
@@ -306,6 +325,7 @@ export interface FileRouteTypes {
     | '/api/email-read'
     | '/api/email-summarize'
     | '/api/export-notes'
+    | '/api/files'
     | '/api/inbox-overview'
     | '/api/push'
     | '/api/today-summary'
@@ -326,6 +346,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calendar'
     | '/email'
+    | '/files'
     | '/login'
     | '/settings'
     | '/api/attachments'
@@ -338,6 +359,7 @@ export interface FileRouteTypes {
     | '/api/email-read'
     | '/api/email-summarize'
     | '/api/export-notes'
+    | '/api/files'
     | '/api/inbox-overview'
     | '/api/push'
     | '/api/today-summary'
@@ -358,6 +380,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calendar'
     | '/email'
+    | '/files'
     | '/login'
     | '/settings'
     | '/api/attachments'
@@ -370,6 +393,7 @@ export interface FileRouteTypes {
     | '/api/email-read'
     | '/api/email-summarize'
     | '/api/export-notes'
+    | '/api/files'
     | '/api/inbox-overview'
     | '/api/push'
     | '/api/today-summary'
@@ -391,6 +415,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CalendarRoute: typeof CalendarRoute
   EmailRoute: typeof EmailRoute
+  FilesRoute: typeof FilesRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   ApiAttachmentsRoute: typeof ApiAttachmentsRoute
@@ -403,6 +428,7 @@ export interface RootRouteChildren {
   ApiEmailReadRoute: typeof ApiEmailReadRoute
   ApiEmailSummarizeRoute: typeof ApiEmailSummarizeRoute
   ApiExportNotesRoute: typeof ApiExportNotesRoute
+  ApiFilesRoute: typeof ApiFilesRoute
   ApiInboxOverviewRoute: typeof ApiInboxOverviewRoute
   ApiPushRoute: typeof ApiPushRouteWithChildren
   ApiTodaySummaryRoute: typeof ApiTodaySummaryRoute
@@ -440,6 +466,13 @@ declare module '@tanstack/react-router' {
       path: '/email'
       fullPath: '/email'
       preLoaderRoute: typeof EmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/files': {
+      id: '/files'
+      path: '/files'
+      fullPath: '/files'
+      preLoaderRoute: typeof FilesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -524,6 +557,13 @@ declare module '@tanstack/react-router' {
       path: '/api/export-notes'
       fullPath: '/api/export-notes'
       preLoaderRoute: typeof ApiExportNotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files': {
+      id: '/api/files'
+      path: '/api/files'
+      fullPath: '/api/files'
+      preLoaderRoute: typeof ApiFilesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/inbox-overview': {
@@ -649,6 +689,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CalendarRoute: CalendarRoute,
   EmailRoute: EmailRoute,
+  FilesRoute: FilesRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   ApiAttachmentsRoute: ApiAttachmentsRoute,
@@ -661,6 +702,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiEmailReadRoute: ApiEmailReadRoute,
   ApiEmailSummarizeRoute: ApiEmailSummarizeRoute,
   ApiExportNotesRoute: ApiExportNotesRoute,
+  ApiFilesRoute: ApiFilesRoute,
   ApiInboxOverviewRoute: ApiInboxOverviewRoute,
   ApiPushRoute: ApiPushRouteWithChildren,
   ApiTodaySummaryRoute: ApiTodaySummaryRoute,
@@ -679,13 +721,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
