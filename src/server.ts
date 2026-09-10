@@ -1,5 +1,8 @@
 import "./lib/error-capture";
-import "@/server/server-start.server";
+// Phase 5 — start the reminder scheduler at server boot (side-effectful:
+// the module top-level calls startReminderScheduler()). A bare dynamic
+// import so the bundler keeps the side effect.
+import("./server/server-start.server").catch(() => undefined);
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
