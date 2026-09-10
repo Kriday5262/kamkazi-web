@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { TODAY, dayOffset, type Task } from "@/data/seed";
 import { EmptyState } from "@/components/primitives";
+import { TaskCheckbox } from "@/components/primitives";
 import { AgendaList, buildAgenda, type AgendaLiveEvent } from "@/components/agenda-list";
-import { AgendaGroupsView } from "@/components/agenda-groups";
 import { TaskDetail } from "@/components/task-detail";
 import { EventDetail } from "@/components/event-detail";
 import type { DatedEvent } from "@/data/seed";
@@ -108,7 +108,7 @@ function subColour(name: string): string {
   return palette[h % palette.length] ?? "blue";
 }
 
-type ViewMode = "month" | "week" | "day" | "agenda";
+type ViewMode = "month" | "week" | "day";
 
 export function CalendarScreen() {
   const { tasks, addTask, settings } = useStore();
@@ -289,6 +289,15 @@ export function CalendarScreen() {
   );
   const dayTasks = useCallback((date: string) => tasks.filter((t) => t.dueDate === date), [tasks]);
 
+  // Overdue tasks (open, due before today) — shown above the plan on every view.
+  const overdueTasks = useMemo(
+    () =>
+      tasks
+        .filter((t) => !t.done && t.dueDate && t.dueDate < today)
+        .sort((a, b) => ((a.dueDate ?? "") < (b.dueDate ?? "") ? -1 : 1)),
+    [tasks, today],
+  );
+
   const selectedTasks = dayTasks(selected);
   const selectedEvents = dayEvents(selected);
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
@@ -350,12 +359,12 @@ export function CalendarScreen() {
                 )}
               </h1>
               <p className="mt-1 truncate text-[13px] font-medium text-muted-foreground">
-                {view === "day" ? "Agenda — events + tasks" : view === "agenda" ? "Everything — unplanned, overdue & upcoming" : longDate(selected)}
+                {view === "day" ? "Agenda — events + tasks" : longDate(selected)}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-[var(--shadow-panel)]">
-                {(["agenda", "day", "week", "month"] as ViewMode[]).map((m) => (
+                {(["day", "week", "month"] as ViewMode[]).map((m) => (
                   <button
                     key={m}
                     type="button"
@@ -425,78 +434,10 @@ export function CalendarScreen() {
 
           <div className="mt-5 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-8">
             <div className="flex flex-col gap-4">
-              {/* day view: this-week mini strip (fills the desktop left column) */}
-              {view === "day" ? (
-                <section className="panel animate-fade-up p-2.5" aria-label="This week">
-                  <div className="grid grid-cols-7 pb-1">
-                    {WEEKDAYS.map((_, i) => WEEKDAYS[(i + weekStart) % 7]).map((d, i) => (
-                      <span
-                        key={i}
-                        className="text-center text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
-                      >
-                        {d}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-7">
-                    {(function weekDates() {
-                      const base = new Date(today + "T00:00:00");
-                      const dow = base.getDay();
-                      const daysToMonday = (dow + 6) % 7;
-                      const monday = new Date(base);
-                      monday.setDate(monday.getDate() - daysToMonday);
-                      return Array.from({ length: 7 }, (_, i) => {
-                        const d = new Date(monday);
-                        d.setDate(d.getDate() + i);
-                        const date = d.toISOString().slice(0, 10);
-                        const isSel = date === selected;
-                        const isT = date === today;
-                        const n = Number(date.slice(8));
-                        const evs = dayEvents(date);
-                        const tks = dayTasks(date);
-                        const dots = [...new Set(evs.map((e) => subColour(e.calendar))), tks.length ? "task" : null].filter(Boolean) as string[];
-                        return (
-                          <button
-                            key={date}
-                            type="button"
-                            onClick={() => setSelected(date)}
-                            aria-pressed={isSel}
-                            aria-label={longDate(date)}
-                            className="tap flex flex-col items-center gap-0.5 rounded-[12px] py-1 transition-colors hover:bg-surface-2/70"
-                          >
-                            <span
-                              className={cn(
-                                "num grid size-8 place-items-center rounded-full text-[13px] font-semibold",
-                                isSel
-                                  ? "gradient-primary text-primary-foreground shadow-[var(--shadow-3d)]"
-                                  : isT
-                                    ? "text-primary"
-                                    : "text-foreground",
-                              )}
-                            >
-                              {n}
-                            </span>
-                            <span className="flex h-1.5 items-center gap-[3px]">
-                              {dots.map((c, j) => (
-                                <span
-                                  key={j}
-                                  className={cn(
-                                    "size-1 rounded-full",
-                                    c === "task" ? "bg-accent-amber" : COLOUR_CLASS[c],
-                                  )}
-                                  aria-hidden
-                                />
-                              ))}
-                            </span>
-                          </button>
-                        );
-                      });
-                    })()}
-                  </div>
-                </section>
-              ) : null}
+              {/* Day view: Unplanned tasks (desktop expanded, mobile collapsed w/ count) */}
+              {view === "day" ? <UnplannedPanel tasks={tasks} /> : null}
               {/* calendar grid (month) / week strip (day: this-week mini strip) */}
-              {view !== "day" && view !== "agenda" ? (
+              {view !== "day" ? (
                 <section className="panel animate-fade-up p-2.5" aria-label="Calendar grid">
                   <div className="grid grid-cols-7 pb-1">
                     {WEEKDAYS.map((_, i) => WEEKDAYS[(i + weekStart) % 7]).map((d, i) => (
@@ -566,26 +507,7 @@ export function CalendarScreen() {
               ) : null}
             </div>
 
-            {/* agenda / day plan / master agenda view */}
-            {view === "agenda" ? (
-              <section className="min-w-0" aria-label="Master agenda — all tasks and events grouped">
-                {loading ? (
-                  <div className="panel px-3 py-4 text-[13px] text-muted-foreground">Loading…</div>
-                ) : (
-                  <AgendaGroupsView
-                    events={liveEvents.map((e) => ({
-                      id: e.id,
-                      title: e.title,
-                      date: e.date,
-                      start: e.start,
-                      allDay: e.allDay,
-                      calendar: e.calendar,
-                      colour: e.colour,
-                    }))}
-                  />
-                )}
-              </section>
-            ) : (
+            {/* agenda / day plan */}
             <section className="min-w-0" aria-label="Agenda for selected day">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-[16px] font-bold tracking-tight">
@@ -606,7 +528,7 @@ export function CalendarScreen() {
                 <div className="panel px-3 py-4 text-[13px] text-muted-foreground">
                   Loading calendar…
                 </div>
-              ) : agenda.length === 0 ? (
+              ) : agenda.length === 0 && overdueTasks.length === 0 ? (
                 <EmptyState
                   icon={<CalendarDays className="size-5" aria-hidden />}
                   title="Nothing planned"
@@ -615,6 +537,7 @@ export function CalendarScreen() {
               ) : (
                 <AgendaList
                   agenda={agenda}
+                  overdue={overdueTasks}
                   onSelectEvent={(id) => setSelectedEventId(id)}
                   onSelectTask={(id) => setSelectedTaskIdState(id)}
                   onEditEvent={(ev) => setEditorFor(ev)}
@@ -647,7 +570,6 @@ export function CalendarScreen() {
                 />
               </form>
             </section>
-            )}
           </div>
 
           <div className="h-10" />
@@ -729,5 +651,61 @@ export function CalendarScreen() {
         </>
       ) : null}
     </div>
+  );
+}
+
+
+/**
+ * Day-view left panel — unplanned tasks (no due date). Expanded by default on
+ * desktop (lg+); collapsed on mobile with a count so focus stays on the plan.
+ */
+function UnplannedPanel({ tasks }: { tasks: Task[] }) {
+  const { toggleTask } = useStore();
+  const unplanned = useMemo(
+    () => tasks.filter((t) => !t.done && !t.dueDate).sort((a, b) => a.title.localeCompare(b.title)),
+    [tasks],
+  );
+  const [open, setOpen] = useState(true);
+  // Collapse by default on small screens (match Tailwind lg breakpoint).
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    setOpen(mq.matches);
+    const fn = (e: MediaQueryListEvent) => setOpen(e.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
+
+  return (
+    <section className="panel animate-fade-up p-2.5" aria-label="Unplanned tasks">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between rounded-md px-1 py-1 text-left"
+      >
+        <span className="text-[13px] font-bold tracking-tight">
+          Unplanned
+          <span className="num ml-2 text-[11px] font-semibold text-muted-foreground">{unplanned.length}</span>
+        </span>
+        <ChevronRight
+          className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")}
+          aria-hidden
+        />
+      </button>
+      {open ? (
+        unplanned.length === 0 ? (
+          <p className="px-1 pb-1 pt-2 text-[12.5px] text-muted-foreground">Nothing unplanned — every task has a date.</p>
+        ) : (
+          <ul className="mt-1 space-y-0.5">
+            {unplanned.map((t) => (
+              <li key={t.id} className="flex items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-surface-2/60">
+                <TaskCheckbox done={t.done} priority={t.priority} onToggle={() => toggleTask(t.id)} label={t.title} />
+                <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{t.title}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+    </section>
   );
 }

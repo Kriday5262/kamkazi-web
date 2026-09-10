@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { EmptyState, TaskCheckbox } from "@/components/primitives";
 import { TagChip } from "@/components/tasks-screen";
 import type { Task } from "@/data/seed";
-import { formatDuration, formatTime } from "@/lib/format";
+import { formatDuration, formatTime, relativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export interface AgendaLiveEvent {
@@ -63,6 +63,7 @@ export function buildAgenda(events: AgendaLiveEvent[], tasks: Task[], date: stri
 
 export function AgendaList({
   agenda,
+  overdue,
   onSelectEvent,
   onSelectTask,
   onEditEvent,
@@ -71,6 +72,8 @@ export function AgendaList({
   emptyDescription = "This day is completely free.",
 }: {
   agenda: AgendaItem[];
+  /** Overdue tasks rendered above the day's plan (red "Overdue" header). */
+  overdue?: Task[];
   onSelectEvent: (id: string) => void;
   onSelectTask: (id: string) => void;
   onEditEvent?: (event: AgendaLiveEvent) => void;
@@ -78,7 +81,7 @@ export function AgendaList({
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
-  if (agenda.length === 0) {
+  if (agenda.length === 0 && !(overdue && overdue.length > 0)) {
     return (
       <EmptyState
         icon={<CalendarDays className="size-5" aria-hidden />}
@@ -89,6 +92,18 @@ export function AgendaList({
   }
   return (
     <div className="panel px-2 py-2">
+      {overdue && overdue.length > 0 ? (
+        <>
+          <div className="px-1 pb-1 pt-1.5">
+            <span className="text-[13px] font-bold tracking-tight text-destructive">Overdue</span>
+            <span className="num ml-2 text-[11px] font-semibold text-destructive/70">{overdue.length}</span>
+          </div>
+          {overdue.map((t) => (
+            <AgendaTaskRow key={t.id} task={t} onSelect={() => onSelectTask(t.id)} overdue />
+          ))}
+          <div className="mx-1 my-1.5 border-t border-border" />
+        </>
+      ) : null}
       {agenda.map((item) =>
         item.event ? (
           <AgendaEventRow
@@ -191,7 +206,7 @@ function AgendaEventRow({
   );
 }
 
-function AgendaTaskRow({ task, onSelect }: { task: Task; onSelect: () => void }) {
+function AgendaTaskRow({ task, onSelect, overdue = false }: { task: Task; onSelect: () => void; overdue?: boolean }) {
   const { toggleTask } = useStore();
   return (
     <div
@@ -206,8 +221,8 @@ function AgendaTaskRow({ task, onSelect }: { task: Task; onSelect: () => void })
       }}
       className="flex w-full cursor-default gap-3 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-surface-2/60"
     >
-      <span className="tnum w-[60px] shrink-0 pt-0.5 text-right text-[12.5px] text-muted-foreground">
-        {task.dueTime ? formatTime(task.dueTime) : ""}
+      <span className={cn("tnum w-[60px] shrink-0 pt-0.5 text-right text-[12.5px]", overdue ? "font-semibold text-destructive" : "text-muted-foreground")}>
+        {task.dueTime ? formatTime(task.dueTime) : relativeDate(task.dueDate)}
       </span>
       <TaskCheckbox
         done={task.done}

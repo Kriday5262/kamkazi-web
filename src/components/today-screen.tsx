@@ -298,6 +298,7 @@ export function TodayScreen() {
             </div>
             <AgendaList
               agenda={agenda}
+              overdue={tasks.filter((t) => !t.done && t.dueDate && t.dueDate < TODAY)}
               onSelectEvent={(id) => {
                 setSelectedId(null);
                 setSelectedEventId(id);
