@@ -107,3 +107,11 @@ export function isOverdueNow(iso?: string | undefined, time?: string | undefined
   const now = new Date();
   return h * 60 + (m || 0) <= now.getHours() * 60 + now.getMinutes();
 }
+
+/** Due today with the time already passed (used for red-time styling in the timeline). */
+export function isTimePast(iso?: string | undefined, time?: string | undefined) {
+  if (!iso || iso !== TODAY || !time) return false;
+  const [h = 0, m = 0] = time.split(":").map(Number);
+  const now = new Date();
+  return h * 60 + (m || 0) <= now.getHours() * 60 + now.getMinutes();
+}

@@ -240,7 +240,8 @@ export function StoreProvider({
     queueMicrotask(() => {
       if (!snapshot) return;
       const nowDone = !snapshot.done;
-      // Repeating task completed -> roll the SAME task forward (single save, no race).
+      // Repeating task completed -> keep this instance done in place (visible
+      // feedback) and spawn the NEXT occurrence on a future date. Toast confirms.
       if (nowDone && snapshot.repeat && ["daily", "weekly", "monthly", "yearly"].includes(snapshot.repeat)) {
         let nextDue = snapshot.dueDate ?? TODAY;
         let guard = 0;
@@ -248,11 +249,19 @@ export function StoreProvider({
           nextDue = nextRepeatDate(nextDue, snapshot.repeat);
           guard += 1;
         } while (nextDue <= TODAY && guard < 366);
-        const rolled: Task = { ...snapshot, done: false, dueDate: nextDue, updatedAt: TODAY };
-        setTasks((prev) => prev.map((t) => (t.id === id ? rolled : t)));
-        saveTask({ data: { task: rolled } }).catch(() => {
-          if (snapshot) setTasks((prev) => prev.map((t) => (t.id === id ? snapshot! : t)));
+        const clone: Task = {
+          ...snapshot,
+          id: uid(),
+          done: false,
+          dueDate: nextDue,
+          createdAt: TODAY,
+          updatedAt: TODAY,
+        };
+        setTasks((prev) => [clone, ...prev]);
+        saveTask({ data: { task: clone } }).catch(() => {
+          setTasks((prev) => prev.filter((t) => t.id !== clone.id));
         });
+        toast.success("Repeats " + snapshot.repeat + " - next on " + nextDue);
         return;
       }
       const updated = { ...snapshot, done: nowDone, updatedAt: TODAY };

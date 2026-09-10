@@ -64,6 +64,7 @@ export function buildAgenda(events: AgendaLiveEvent[], tasks: Task[], date: stri
 export function AgendaList({
   agenda,
   overdue,
+  timePastIds,
   onSelectEvent,
   onSelectTask,
   onEditEvent,
@@ -73,7 +74,9 @@ export function AgendaList({
 }: {
   agenda: AgendaItem[];
   /** Overdue tasks rendered above the day's plan (red "Overdue" header). */
-  overdue?: Task[];
+  overdue?: Task[] | undefined;
+  /** Today's tasks whose time has passed -> red time in the timeline (stay in place). */
+  timePastIds?: Set<string> | undefined;
   onSelectEvent: (id: string) => void;
   onSelectTask: (id: string) => void;
   onEditEvent?: (event: AgendaLiveEvent) => void;
@@ -117,6 +120,7 @@ export function AgendaList({
           <AgendaTaskRow
             key={item.key}
             task={item.task}
+            timePast={timePastIds?.has(item.task.id) ?? false}
             onSelect={() => onSelectTask(item.task!.id)}
           />
         ) : null,
@@ -206,7 +210,7 @@ function AgendaEventRow({
   );
 }
 
-function AgendaTaskRow({ task, onSelect, overdue = false }: { task: Task; onSelect: () => void; overdue?: boolean }) {
+function AgendaTaskRow({ task, onSelect, overdue = false, timePast = false }: { task: Task; onSelect: () => void; overdue?: boolean; timePast?: boolean }) {
   const { toggleTask } = useStore();
   // "Overdue" rows show the actual due date in the time slot; planned rows show
   // relative date when the row's list isn't a single day (week/month/overdue lists).
@@ -226,7 +230,7 @@ function AgendaTaskRow({ task, onSelect, overdue = false }: { task: Task; onSele
       }}
       className="flex w-full cursor-default gap-3 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-surface-2/60"
     >
-      <span className={cn("tnum w-[60px] shrink-0 pt-0.5 text-right text-[12.5px]", overdue ? "font-semibold text-destructive" : "text-muted-foreground")}>
+      <span className={cn("tnum w-[60px] shrink-0 pt-0.5 text-right text-[12.5px]", overdue || timePast ? "font-semibold text-destructive" : "text-muted-foreground")}>
         {task.dueTime ? formatTime(task.dueTime) : relativeDate(task.dueDate)}
       </span>
       <TaskCheckbox

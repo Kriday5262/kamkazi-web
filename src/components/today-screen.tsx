@@ -17,7 +17,7 @@ import { useStore } from "@/lib/store";
 import { loadAll } from "@/lib/auth-data";
 import { TODAY, dayOffset, userName, weather as fallbackWeather, type Task } from "@/data/seed";
 import { fetchWeather } from "@/lib/ai-client";
-import { formatTime, greeting, longDate, relativeDate, isOverdueNow } from "@/lib/format";
+import { formatTime, greeting, longDate, relativeDate, isOverdueNow, isTimePast } from "@/lib/format";
 import { TaskCheckbox } from "@/components/primitives";
 import { TaskDetail } from "@/components/task-detail";
 import { EventDetail } from "@/components/event-detail";
@@ -298,7 +298,8 @@ export function TodayScreen() {
             </div>
             <AgendaList
               agenda={agenda}
-              overdue={tasks.filter((t) => !t.done && isOverdueNow(t.dueDate, t.dueTime))}
+              overdue={tasks.filter((t) => !t.done && t.dueDate && t.dueDate < TODAY)}
+              timePastIds={new Set(tasks.filter((t) => !t.done && isTimePast(t.dueDate, t.dueTime)).map((t) => t.id))}
               onSelectEvent={(id) => {
                 setSelectedId(null);
                 setSelectedEventId(id);
