@@ -10,6 +10,7 @@ import {
   Paperclip,
   Plus,
   Download,
+  Eye,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
@@ -28,6 +29,7 @@ const PRIORITY_LABEL: Record<Task["priority"], string> = {
 };
 
 export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void }) {
+  const [preview, setPreview] = useState<{ name: string; url: string; isPdf: boolean } | null>(null);
   const { tasks, updateTask, deleteTask, toggleTask, addTaskAttachment, removeTaskAttachment } =
     useStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -264,18 +266,46 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
 
         <div className="mt-6 space-y-1 border-t border-border pt-4">
           <Row icon={<Repeat className="size-4" aria-hidden />} label="Repeat">
-            <input
+            <select
               value={task.repeat ?? ""}
               onChange={(e) => updateTask(task.id, { repeat: e.target.value || undefined })}
-              placeholder="Never"
               aria-label="Repeat"
-              className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-            />
+              className="w-full rounded-md bg-surface-2 px-2 py-1 text-[13px] outline-none"
+            >
+              <option value="">Never</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
           </Row>
           <Row icon={<Paperclip className="size-4" aria-hidden />} label="Files">
             <div className="space-y-1.5">
-              {task.attachments.map((a) => (
+              {task.attachments.map((a) => {
+                const ext = a.name.toLowerCase().replace(/.*\./, "");
+                const isImg = ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext);
+                const isPdf = ext === "pdf";
+                const src = a.path ? `/api/attachments?path=${encodeURIComponent(a.path)}&inline=1` : "";
+                return (
                 <div key={a.id} className="flex items-center gap-2 text-[13px]">
+                  {a.path && (isImg || isPdf) ? (
+                    <button
+                      type="button"
+                      aria-label={`Preview ${a.name}`}
+                      title={`Preview ${a.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreview({ name: a.name, url: src, isPdf });
+                      }}
+                      className="shrink-0"
+                    >
+                      {isImg ? (
+                        <img src={src} alt={a.name} className="size-9 rounded-md border border-border object-cover" loading="lazy" />
+                      ) : (
+                        <span className="grid size-9 place-items-center rounded-md border border-border bg-surface-2 text-[9px] font-bold text-muted-foreground">PDF</span>
+                      )}
+                    </button>
+                  ) : null}
                   {a.path ? (
                     <a
                       href={`/api/attachments?path=${encodeURIComponent(a.path)}`}
@@ -283,7 +313,7 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
                       onClick={(e) => e.stopPropagation()}
                       className="flex min-w-0 items-center gap-1.5 text-primary hover:underline"
                     >
-                      <Download className="size-3.5 shrink-0" aria-hidden />
+                      {isImg || isPdf ? null : <Download className="size-3.5 shrink-0" aria-hidden />}
                       <span className="truncate">{a.name}</span>
                     </a>
                   ) : (
@@ -302,7 +332,8 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
                     <Trash2 className="size-3.5" aria-hidden />
                   </button>
                 </div>
-              ))}
+                );
+              })}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -337,6 +368,55 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
           onClose();
         }}
       />
+
+      {/* attachment preview popup (images + PDFs) */}
+      {preview ? (
+        <div
+          role="dialog"
+          aria-label={`Preview ${preview.name}`}
+          onClick={() => setPreview(null)}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-raised)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <span className="truncate text-[13px] font-semibold">{preview.name}</span>
+              <div className="flex items-center gap-1">
+                <a
+                  href={preview.url.replace("&inline=1", "&inline=1")}
+                  download
+                  className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                  aria-label="Download"
+                  title="Download"
+                >
+                  <Download className="size-4" aria-hidden />
+                </a>
+                <button
+                  type="button"
+                  aria-label="Close preview"
+                  onClick={() => setPreview(null)}
+                  className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto bg-surface-2">
+              {preview.isPdf ? (
+                <object data={preview.url} type="application/pdf" className="h-[75vh] w-full">
+                  <p className="p-6 text-center text-[13px] text-muted-foreground">
+                    PDF preview not supported here — <a className="text-primary underline" href={preview.url} download>download it</a>.
+                  </p>
+                </object>
+              ) : (
+                <img src={preview.url} alt={preview.name} className="mx-auto max-h-[75vh] w-auto max-w-full object-contain" />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

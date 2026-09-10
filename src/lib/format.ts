@@ -68,3 +68,29 @@ export function relativeStamp(iso: string) {
   if (days < 7) return `${days} days ago`;
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
+
+/**
+ * Simple recurrence: next due date for daily/weekly/monthly/yearly repeats.
+ * Falls back to today+interval when the task has no due date.
+ */
+export function nextRepeatDate(dueDate: string | undefined, repeat: string): string {
+  const base = dueDate ? new Date(dueDate + "T00:00:00") : new Date();
+  if (Number.isNaN(base.getTime())) base.setTime(Date.now());
+  switch (repeat) {
+    case "daily":
+      base.setDate(base.getDate() + 1);
+      break;
+    case "weekly":
+      base.setDate(base.getDate() + 7);
+      break;
+    case "monthly":
+      base.setMonth(base.getMonth() + 1);
+      break;
+    case "yearly":
+      base.setFullYear(base.getFullYear() + 1);
+      break;
+    default:
+      base.setDate(base.getDate() + 1);
+  }
+  return base.toISOString().slice(0, 10);
+}

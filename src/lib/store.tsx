@@ -30,6 +30,7 @@ import {
   type Task,
   type TaskList,
 } from "@/data/seed";
+import { nextRepeatDate } from "@/lib/format";
 import {
   addListFn,
   addNotebookFn,
@@ -238,10 +239,27 @@ export function StoreProvider({
     });
     queueMicrotask(() => {
       if (!snapshot) return;
-      const updated = { ...snapshot, done: !snapshot.done, updatedAt: TODAY };
+      const nowDone = !snapshot.done;
+      const updated = { ...snapshot, done: nowDone, updatedAt: TODAY };
       saveTask({ data: { task: updated } }).catch(() => {
         if (snapshot) setTasks((prev) => prev.map((t) => (t.id === id ? snapshot! : t)));
       });
+      // Repeating task completed -> spawn the next occurrence (simple engine).
+      if (nowDone && snapshot.repeat && ["daily", "weekly", "monthly", "yearly"].includes(snapshot.repeat)) {
+        const nextDue = nextRepeatDate(snapshot.dueDate, snapshot.repeat);
+        const clone: Task = {
+          ...snapshot,
+          id: uid(),
+          done: false,
+          dueDate: nextDue,
+          createdAt: TODAY,
+          updatedAt: TODAY,
+        };
+        setTasks((prev) => [clone, ...prev]);
+        saveTask({ data: { task: clone } }).catch(() => {
+          setTasks((prev) => prev.filter((t) => t.id !== clone.id));
+        });
+      }
     });
   }, []);
 

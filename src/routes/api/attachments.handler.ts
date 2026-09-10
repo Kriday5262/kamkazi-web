@@ -98,17 +98,30 @@ export async function attachmentsHandler(request: Request): Promise<Response> {
     return json({ attachment });
   }
 
-  // GET → download
+  // GET → stream back (inline for previewable types, attachment otherwise)
   const rel = url.searchParams.get("path") ?? "";
+  const inline = url.searchParams.get("inline") === "1";
   const abs = safeResolve(uid, rel);
   if (!abs) return json({ error: "bad path" }, 400);
   try {
     const data = await readFile(abs);
     const name = path.basename(abs);
+    const ext = path.extname(name).toLowerCase();
+    const MIME: Record<string, string> = {
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".svg": "image/svg+xml",
+      ".pdf": "application/pdf",
+    };
+    const ctype = MIME[ext];
+    const disposition = inline && ctype ? "inline" : "attachment";
     return new Response(new Uint8Array(data), {
       headers: {
-        "content-type": "application/octet-stream",
-        "content-disposition": `attachment; filename="${name.replace(/"/g, "")}"`,
+        "content-type": ctype ?? "application/octet-stream",
+        "content-disposition": `${disposition}; filename="${name.replace(/"/g, "")}"`,
       },
     });
   } catch {

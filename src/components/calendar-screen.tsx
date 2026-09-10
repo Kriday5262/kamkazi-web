@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { TODAY, dayOffset, type Task } from "@/data/seed";
 import { EmptyState } from "@/components/primitives";
 import { AgendaList, buildAgenda, type AgendaLiveEvent } from "@/components/agenda-list";
+import { AgendaGroupsView } from "@/components/agenda-groups";
 import { TaskDetail } from "@/components/task-detail";
 import { EventDetail } from "@/components/event-detail";
 import type { DatedEvent } from "@/data/seed";
@@ -107,7 +108,7 @@ function subColour(name: string): string {
   return palette[h % palette.length] ?? "blue";
 }
 
-type ViewMode = "month" | "week" | "day";
+type ViewMode = "month" | "week" | "day" | "agenda";
 
 export function CalendarScreen() {
   const { tasks, addTask, settings } = useStore();
@@ -349,12 +350,12 @@ export function CalendarScreen() {
                 )}
               </h1>
               <p className="mt-1 truncate text-[13px] font-medium text-muted-foreground">
-                {view === "day" ? "Agenda — events + tasks" : longDate(selected)}
+                {view === "day" ? "Agenda — events + tasks" : view === "agenda" ? "Everything — unplanned, overdue & upcoming" : longDate(selected)}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-[var(--shadow-panel)]">
-                {(["day", "week", "month"] as ViewMode[]).map((m) => (
+                {(["agenda", "day", "week", "month"] as ViewMode[]).map((m) => (
                   <button
                     key={m}
                     type="button"
@@ -424,8 +425,78 @@ export function CalendarScreen() {
 
           <div className="mt-5 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-8">
             <div className="flex flex-col gap-4">
-              {/* calendar grid (month) / week strip */}
-              {view !== "day" ? (
+              {/* day view: this-week mini strip (fills the desktop left column) */}
+              {view === "day" ? (
+                <section className="panel animate-fade-up p-2.5" aria-label="This week">
+                  <div className="grid grid-cols-7 pb-1">
+                    {WEEKDAYS.map((_, i) => WEEKDAYS[(i + weekStart) % 7]).map((d, i) => (
+                      <span
+                        key={i}
+                        className="text-center text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+                      >
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7">
+                    {(function weekDates() {
+                      const base = new Date(today + "T00:00:00");
+                      const dow = base.getDay();
+                      const daysToMonday = (dow + 6) % 7;
+                      const monday = new Date(base);
+                      monday.setDate(monday.getDate() - daysToMonday);
+                      return Array.from({ length: 7 }, (_, i) => {
+                        const d = new Date(monday);
+                        d.setDate(d.getDate() + i);
+                        const date = d.toISOString().slice(0, 10);
+                        const isSel = date === selected;
+                        const isT = date === today;
+                        const n = Number(date.slice(8));
+                        const evs = dayEvents(date);
+                        const tks = dayTasks(date);
+                        const dots = [...new Set(evs.map((e) => subColour(e.calendar))), tks.length ? "task" : null].filter(Boolean) as string[];
+                        return (
+                          <button
+                            key={date}
+                            type="button"
+                            onClick={() => setSelected(date)}
+                            aria-pressed={isSel}
+                            aria-label={longDate(date)}
+                            className="tap flex flex-col items-center gap-0.5 rounded-[12px] py-1 transition-colors hover:bg-surface-2/70"
+                          >
+                            <span
+                              className={cn(
+                                "num grid size-8 place-items-center rounded-full text-[13px] font-semibold",
+                                isSel
+                                  ? "gradient-primary text-primary-foreground shadow-[var(--shadow-3d)]"
+                                  : isT
+                                    ? "text-primary"
+                                    : "text-foreground",
+                              )}
+                            >
+                              {n}
+                            </span>
+                            <span className="flex h-1.5 items-center gap-[3px]">
+                              {dots.map((c, j) => (
+                                <span
+                                  key={j}
+                                  className={cn(
+                                    "size-1 rounded-full",
+                                    c === "task" ? "bg-accent-amber" : COLOUR_CLASS[c],
+                                  )}
+                                  aria-hidden
+                                />
+                              ))}
+                            </span>
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+                </section>
+              ) : null}
+              {/* calendar grid (month) / week strip (day: this-week mini strip) */}
+              {view !== "day" && view !== "agenda" ? (
                 <section className="panel animate-fade-up p-2.5" aria-label="Calendar grid">
                   <div className="grid grid-cols-7 pb-1">
                     {WEEKDAYS.map((_, i) => WEEKDAYS[(i + weekStart) % 7]).map((d, i) => (
@@ -495,7 +566,26 @@ export function CalendarScreen() {
               ) : null}
             </div>
 
-            {/* agenda / day plan */}
+            {/* agenda / day plan / master agenda view */}
+            {view === "agenda" ? (
+              <section className="min-w-0" aria-label="Master agenda — all tasks and events grouped">
+                {loading ? (
+                  <div className="panel px-3 py-4 text-[13px] text-muted-foreground">Loading…</div>
+                ) : (
+                  <AgendaGroupsView
+                    events={liveEvents.map((e) => ({
+                      id: e.id,
+                      title: e.title,
+                      date: e.date,
+                      start: e.start,
+                      allDay: e.allDay,
+                      calendar: e.calendar,
+                      colour: e.colour,
+                    }))}
+                  />
+                )}
+              </section>
+            ) : (
             <section className="min-w-0" aria-label="Agenda for selected day">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-[16px] font-bold tracking-tight">
@@ -557,6 +647,7 @@ export function CalendarScreen() {
                 />
               </form>
             </section>
+            )}
           </div>
 
           <div className="h-10" />
