@@ -94,3 +94,16 @@ export function nextRepeatDate(dueDate: string | undefined, repeat: string): str
   }
   return base.toISOString().slice(0, 10);
 }
+
+/**
+ * Overdue including time: due date before today, OR due today with a due
+ * time earlier than the current time (IST-independent — uses device clock).
+ */
+export function isOverdueNow(iso?: string | undefined, time?: string | undefined) {
+  if (!iso) return false;
+  if (iso < TODAY) return true;
+  if (iso > TODAY || !time) return false;
+  const [h = 0, m = 0] = time.split(":").map(Number);
+  const now = new Date();
+  return h * 60 + (m || 0) <= now.getHours() * 60 + now.getMinutes();
+}

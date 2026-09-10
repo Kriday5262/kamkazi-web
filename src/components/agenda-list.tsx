@@ -208,6 +208,11 @@ function AgendaEventRow({
 
 function AgendaTaskRow({ task, onSelect, overdue = false }: { task: Task; onSelect: () => void; overdue?: boolean }) {
   const { toggleTask } = useStore();
+  // "Overdue" rows show the actual due date in the time slot; planned rows show
+  // relative date when the row's list isn't a single day (week/month/overdue lists).
+  const metaLabel = task.dueDate
+    ? `${relativeDate(task.dueDate)}${task.dueTime ? ` · ${formatTime(task.dueTime)}` : ""}`
+    : "No date";
   return (
     <div
       role="button"
@@ -240,7 +245,7 @@ function AgendaTaskRow({ task, onSelect, overdue = false }: { task: Task; onSele
           {task.title}
         </span>
         <span className="block text-[12.5px] text-muted-foreground">
-          Task{task.priority === "high" ? " · High priority" : ""}
+          {metaLabel}{task.priority === "high" ? " · High priority" : ""}
         </span>
         {task.tags.length ? (
           <span className="mt-1 flex flex-wrap gap-1">

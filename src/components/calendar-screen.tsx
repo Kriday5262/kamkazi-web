@@ -9,7 +9,7 @@ import { TaskDetail } from "@/components/task-detail";
 import { EventDetail } from "@/components/event-detail";
 import type { DatedEvent } from "@/data/seed";
 import { EventEditor } from "@/components/event-editor";
-import { longDate } from "@/lib/format";
+import { longDate, isOverdueNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -293,7 +293,7 @@ export function CalendarScreen() {
   const overdueTasks = useMemo(
     () =>
       tasks
-        .filter((t) => !t.done && t.dueDate && t.dueDate < today)
+        .filter((t) => !t.done && isOverdueNow(t.dueDate, t.dueTime))
         .sort((a, b) => ((a.dueDate ?? "") < (b.dueDate ?? "") ? -1 : 1)),
     [tasks, today],
   );
@@ -435,7 +435,7 @@ export function CalendarScreen() {
           <div className="mt-5 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-8">
             <div className="flex flex-col gap-4">
               {/* Day view: Unplanned tasks (desktop expanded, mobile collapsed w/ count) */}
-              {view === "day" ? <UnplannedPanel tasks={tasks} /> : null}
+              {view === "day" ? <UnplannedPanel tasks={tasks} onSelect={(id) => setSelectedTaskIdState(id)} /> : null}
               {/* calendar grid (month) / week strip (day: this-week mini strip) */}
               {view !== "day" ? (
                 <section className="panel animate-fade-up p-2.5" aria-label="Calendar grid">
@@ -659,7 +659,7 @@ export function CalendarScreen() {
  * Day-view left panel — unplanned tasks (no due date). Expanded by default on
  * desktop (lg+); collapsed on mobile with a count so focus stays on the plan.
  */
-function UnplannedPanel({ tasks }: { tasks: Task[] }) {
+function UnplannedPanel({ tasks, onSelect }: { tasks: Task[]; onSelect: (id: string) => void }) {
   const { toggleTask } = useStore();
   const unplanned = useMemo(
     () => tasks.filter((t) => !t.done && !t.dueDate).sort((a, b) => a.title.localeCompare(b.title)),
@@ -698,7 +698,19 @@ function UnplannedPanel({ tasks }: { tasks: Task[] }) {
         ) : (
           <ul className="mt-1 space-y-0.5">
             {unplanned.map((t) => (
-              <li key={t.id} className="flex items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-surface-2/60">
+              <li
+                key={t.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(t.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(t.id);
+                  }
+                }}
+                className="flex cursor-default items-center gap-2 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-surface-2/60"
+              >
                 <TaskCheckbox done={t.done} priority={t.priority} onToggle={() => toggleTask(t.id)} label={t.title} />
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{t.title}</span>
               </li>

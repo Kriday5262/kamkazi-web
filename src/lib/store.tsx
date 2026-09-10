@@ -240,11 +240,7 @@ export function StoreProvider({
     queueMicrotask(() => {
       if (!snapshot) return;
       const nowDone = !snapshot.done;
-      const updated = { ...snapshot, done: nowDone, updatedAt: TODAY };
-      saveTask({ data: { task: updated } }).catch(() => {
-        if (snapshot) setTasks((prev) => prev.map((t) => (t.id === id ? snapshot! : t)));
-      });
-      // Repeating task completed -> roll the SAME task forward (no duplicate copies).
+      // Repeating task completed -> roll the SAME task forward (single save, no race).
       if (nowDone && snapshot.repeat && ["daily", "weekly", "monthly", "yearly"].includes(snapshot.repeat)) {
         let nextDue = snapshot.dueDate ?? TODAY;
         let guard = 0;
@@ -259,6 +255,10 @@ export function StoreProvider({
         });
         return;
       }
+      const updated = { ...snapshot, done: nowDone, updatedAt: TODAY };
+      saveTask({ data: { task: updated } }).catch(() => {
+        if (snapshot) setTasks((prev) => prev.map((t) => (t.id === id ? snapshot! : t)));
+      });
     });
   }, []);
 
