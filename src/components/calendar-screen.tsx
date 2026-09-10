@@ -406,17 +406,6 @@ export function CalendarScreen() {
               <button
                 type="button"
                 onClick={() => {
-                  // Open (and focus) the quick-capture input to add a task due selected day.
-                  setCaptureOpen(true);
-                  window.setTimeout(() => captureRef.current?.focus(), 50);
-                }}
-                className="tap text-[12.5px] font-semibold text-primary hover:underline"
-              >
-                + Task
-              </button>
-              <button
-                type="button"
-                onClick={() => {
                   setCursor({ year: todayParts[0], month: todayParts[1] - 1 });
                   setSelected(today);
                 }}
