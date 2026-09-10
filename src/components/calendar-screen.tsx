@@ -301,7 +301,8 @@ export function CalendarScreen() {
 
   // Today's tasks whose time has passed -> red time in the timeline (stay in place).
   const timePastIds = useMemo(
-    () => new Set(tasks.filter((t) => !t.done && isTimePast(t.dueDate, t.dueTime)).map((t) => t.id)),
+    () =>
+      new Set(tasks.filter((t) => !t.done && isTimePast(t.dueDate, t.dueTime)).map((t) => t.id)),
     [tasks, today],
   );
 
@@ -399,9 +400,9 @@ export function CalendarScreen() {
                   setCaptureOpen(true);
                   window.setTimeout(() => captureRef.current?.focus(), 50);
                 }}
-                className="tap flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-[13px] font-semibold shadow-[var(--shadow-panel)]"
+                className="tap text-[12.5px] font-semibold text-primary hover:underline"
               >
-                <Plus className="size-4" aria-hidden /> Task
+                + Task
               </button>
               <button
                 type="button"
@@ -446,7 +447,9 @@ export function CalendarScreen() {
           <div className="mt-5 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-8">
             <div className="flex flex-col gap-4">
               {/* Day view: Unplanned tasks (desktop expanded, mobile collapsed w/ count) */}
-              {view === "day" ? <UnplannedPanel tasks={tasks} onSelect={(id) => setSelectedTaskIdState(id)} /> : null}
+              {view === "day" ? (
+                <UnplannedPanel tasks={tasks} onSelect={(id) => setSelectedTaskIdState(id)} />
+              ) : null}
               {/* Day view filler: this-week mini strip + selected-day agenda beside the plan */}
               {view === "day" ? (
                 <>
@@ -508,7 +511,7 @@ export function CalendarScreen() {
                               </span>
                             </button>
                           );
-                        })();
+                        });
                       })()}
                     </div>
                   </section>
@@ -605,70 +608,103 @@ export function CalendarScreen() {
               ) : null}
             </div>
 
-            {/* agenda / day plan */}
-            <section className="min-w-0" aria-label="Agenda for selected day">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-[16px] font-bold tracking-tight">
-                  {selected === today ? "Today" : longDate(selected)}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditorFor("new");
-                    setEditorDate(selected);
-                  }}
-                  className="tap text-[12.5px] font-semibold text-primary hover:underline"
-                >
-                  + Add to this day
-                </button>
-              </div>
-              {loading ? (
-                <div className="panel px-3 py-4 text-[13px] text-muted-foreground">
-                  Loading calendar…
-                </div>
-              ) : agenda.length === 0 && (selected === today ? overdueTasks.length === 0 : true) ? (
-                <EmptyState
-                  icon={<CalendarDays className="size-5" aria-hidden />}
-                  title="Nothing planned"
-                  description="This day is completely free."
-                />
-              ) : (
-                <AgendaList
-                  agenda={agenda}
-                  overdue={selected === today ? overdueTasks : undefined}
-                  timePastIds={selected === today ? timePastIds : undefined}
-                  onSelectEvent={(id) => setSelectedEventId(id)}
-                  onSelectTask={(id) => setSelectedTaskIdState(id)}
-                  onEditEvent={(ev) => setEditorFor(ev)}
-                  onDeleteEvent={(id) => void deleteEvent(id)}
-                />
-              )}
-              {/* quick-capture input for the selected day (Today-style) */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!quickTask.trim()) return;
-                  addTask(quickTask.trim(), undefined, selected);
-                  setQuickTask("");
-                  showToast("Task added to " + longDate(selected));
-                  captureRef.current?.focus();
-                }}
-                className={cn(
-                  "mt-2 flex items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2.5 shadow-[var(--shadow-panel)] focus-within:border-primary/40",
-                  !captureOpen && "hidden",
-                )}
+            {/* master agenda view / agenda / day plan */}
+            {view === "agenda" ? (
+              <section
+                className="min-w-0"
+                aria-label="Master agenda — all tasks and events grouped"
               >
-                <Plus className="size-[17px] text-primary" strokeWidth={2.4} aria-hidden />
-                <input
-                  ref={captureRef}
-                  value={quickTask}
-                  onChange={(e) => setQuickTask(e.target.value)}
-                  placeholder={"Add to " + longDate(selected) + "…"}
-                  aria-label={"Add a task for " + longDate(selected)}
-                  className="w-full bg-transparent text-[14px] font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
-                />
-              </form>
-            </section>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-[16px] font-bold tracking-tight">All open</h2>
+                </div>
+                {loading ? (
+                  <div className="panel px-3 py-4 text-[13px] text-muted-foreground">
+                    Loading calendar…
+                  </div>
+                ) : (
+                  <AgendaGroupsView
+                    events={allEvents.map((e) => ({
+                      id: e.id,
+                      title: e.title,
+                      date: e.date,
+                      start: e.start,
+                      allDay: e.allDay,
+                      location: e.location,
+                      calendar: e.calendar,
+                      colour: e.colour,
+                    }))}
+                    weekStartsOn={weekStart}
+                    onSelectTask={(id) => setSelectedTaskIdState(id)}
+                    onSelectEvent={(id) => setSelectedEventId(id)}
+                  />
+                )}
+              </section>
+            ) : (
+              <section className="min-w-0" aria-label="Agenda for selected day">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-[16px] font-bold tracking-tight">
+                    {selected === today ? "Today" : longDate(selected)}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditorFor("new");
+                      setEditorDate(selected);
+                    }}
+                    className="tap text-[12.5px] font-semibold text-primary hover:underline"
+                  >
+                    + Add to this day
+                  </button>
+                </div>
+                {loading ? (
+                  <div className="panel px-3 py-4 text-[13px] text-muted-foreground">
+                    Loading calendar…
+                  </div>
+                ) : agenda.length === 0 &&
+                  (selected === today ? overdueTasks.length === 0 : true) ? (
+                  <EmptyState
+                    icon={<CalendarDays className="size-5" aria-hidden />}
+                    title="Nothing planned"
+                    description="This day is completely free."
+                  />
+                ) : (
+                  <AgendaList
+                    agenda={agenda}
+                    overdue={selected === today ? overdueTasks : undefined}
+                    timePastIds={selected === today ? timePastIds : undefined}
+                    onSelectEvent={(id) => setSelectedEventId(id)}
+                    onSelectTask={(id) => setSelectedTaskIdState(id)}
+                    onEditEvent={(ev) => setEditorFor(ev)}
+                    onDeleteEvent={(id) => void deleteEvent(id)}
+                  />
+                )}
+                {/* quick-capture input for the selected day (Today-style) */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!quickTask.trim()) return;
+                    addTask(quickTask.trim(), undefined, selected);
+                    setQuickTask("");
+                    showToast("Task added to " + longDate(selected));
+                    captureRef.current?.focus();
+                  }}
+                  className={cn(
+                    "mt-2 flex items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2.5 shadow-[var(--shadow-panel)] focus-within:border-primary/40",
+                    !captureOpen && "hidden",
+                  )}
+                >
+                  <Plus className="size-[17px] text-primary" strokeWidth={2.4} aria-hidden />
+                  <input
+                    ref={captureRef}
+                    value={quickTask}
+                    onChange={(e) => setQuickTask(e.target.value)}
+                    placeholder={"Add to " + longDate(selected) + "…"}
+                    aria-label={"Add a task for " + longDate(selected)}
+                    className="w-full bg-transparent text-[14px] font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
+                  />
+                </form>
+              </section>
+            )}
           </div>
 
           <div className="h-10" />
@@ -753,7 +789,6 @@ export function CalendarScreen() {
   );
 }
 
-
 /**
  * Day-view left panel — unplanned tasks (no due date). Expanded by default on
  * desktop (lg+); collapsed on mobile with a count so focus stays on the plan.
@@ -784,7 +819,9 @@ function UnplannedPanel({ tasks, onSelect }: { tasks: Task[]; onSelect: (id: str
       >
         <span className="text-[13px] font-bold tracking-tight">
           Unplanned
-          <span className="num ml-2 text-[11px] font-semibold text-muted-foreground">{unplanned.length}</span>
+          <span className="num ml-2 text-[11px] font-semibold text-muted-foreground">
+            {unplanned.length}
+          </span>
         </span>
         <ChevronRight
           className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")}
@@ -793,7 +830,9 @@ function UnplannedPanel({ tasks, onSelect }: { tasks: Task[]; onSelect: (id: str
       </button>
       {open ? (
         unplanned.length === 0 ? (
-          <p className="px-1 pb-1 pt-2 text-[12.5px] text-muted-foreground">Nothing unplanned — every task has a date.</p>
+          <p className="px-1 pb-1 pt-2 text-[12.5px] text-muted-foreground">
+            Nothing unplanned — every task has a date.
+          </p>
         ) : (
           <ul className="mt-1 space-y-0.5">
             {unplanned.map((t) => (
@@ -810,7 +849,12 @@ function UnplannedPanel({ tasks, onSelect }: { tasks: Task[]; onSelect: (id: str
                 }}
                 className="flex cursor-default items-center gap-2 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-surface-2/60"
               >
-                <TaskCheckbox done={t.done} priority={t.priority} onToggle={() => toggleTask(t.id)} label={t.title} />
+                <TaskCheckbox
+                  done={t.done}
+                  priority={t.priority}
+                  onToggle={() => toggleTask(t.id)}
+                  label={t.title}
+                />
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{t.title}</span>
               </li>
             ))}

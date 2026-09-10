@@ -86,7 +86,11 @@ export function AgendaGroupsView({
         label: "Overdue",
         items: tkOn((t) => !!t.dueDate && t.dueDate < today && isOverdueNow(t.dueDate, t.dueTime)),
       },
-      { key: "today", label: "Today", items: [...evOn(today), ...tkOn((t) => t.dueDate === today)] },
+      {
+        key: "today",
+        label: "Today",
+        items: [...evOn(today), ...tkOn((t) => t.dueDate === today)],
+      },
       {
         key: "tomorrow",
         label: "Tomorrow",
@@ -215,7 +219,12 @@ function AgendaGroupTaskRow({
       >
         {showDate ? relativeDate(task.dueDate) : ""}
       </span>
-      <TaskCheckbox done={task.done} priority={task.priority} onToggle={onToggle} label={task.title} />
+      <TaskCheckbox
+        done={task.done}
+        priority={task.priority}
+        onToggle={onToggle}
+        label={task.title}
+      />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] leading-snug">{task.title}</span>
         <span className="block text-[12.5px] text-muted-foreground">
