@@ -738,7 +738,14 @@ export async function executeTool(
       const search = args["search"] ? String(args["search"]).trim() : "";
       if (search) {
         const out: { path: string; name: string; ext: string }[] = [];
-        await walkFiles("/", { depth: 6, max: 400, out });
+        const SKIP = new Set(["immich", "movies", "tv shows", "music"]);
+        const roots = SKIP.has(search.toLowerCase())
+          ? ["/"]
+          : ["/Work", "/Personal", "/"];
+        for (const start of roots) {
+          if (out.length > 0) break;
+          await walkFiles(start, { depth: 8, max: 5000, out, deadline: Date.now() + 4_000, skip: SKIP });
+        }
         const hits = out.filter((f) => f.name.toLowerCase().includes(search.toLowerCase())).slice(0, 20);
         if (hits.length === 0) return { ok: true, summary: `No files matching “${search}”.` };
         return { ok: true, summary: hits.map((f) => `- ${f.path}`).join("\n") };

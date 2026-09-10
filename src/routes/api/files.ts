@@ -92,8 +92,20 @@ async function filesHandler(request: Request): Promise<Response> {
   if (op === "search") {
     const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
     if (!q) return json({ results: [] });
+    // 205k+ files live on the drive — a flat recursive walk can't cover it.
+    // Strategy: BFS with a real-time budget (≤4s) and an entry cap; skip the
+    // huge media libraries (Immich/Movies/TV Shows/Music) unless the query
+    // explicitly names one of them, so ordinary searches reach Work/ quickly.
     const out: { path: string; name: string; ext: string }[] = [];
-    await walkFiles("/", { depth: 6, max: 400, out });
+    const SKIP = new Set(["immich", "movies", "tv shows", "music"]);
+    const deadline = Date.now() + 4_000;
+    const roots = SKIP.has(q) || [...SKIP].some((s) => q.includes(s))
+      ? ["/"]
+      : ["/Work", "/Personal", "/"];
+    for (const start of roots) {
+      if (out.length > 0 || Date.now() > deadline) break;
+      await walkFiles(start, { depth: 8, max: 5000, out, deadline, skip: SKIP });
+    }
     const results = out
       .filter((f) => f.name.toLowerCase().includes(q))
       .slice(0, 40)

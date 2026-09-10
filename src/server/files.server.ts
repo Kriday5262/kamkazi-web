@@ -203,19 +203,30 @@ export async function saveUpload(
   }
 }
 
-/** Recursive walk (bounded) for search + AI tools. Read-only. */
+/** Recursive walk (bounded) for search + AI tools. Read-only. Aborts on
+ *  deadline or cap; `skip` prunes huge media subtrees. */
 export async function walkFiles(
   rel: string,
-  opts: { depth: number; max: number; out: { path: string; name: string; ext: string }[] },
+  opts: {
+    depth: number;
+    max: number;
+    out: { path: string; name: string; ext: string }[];
+    deadline?: number;
+    skip?: Set<string>;
+  },
 ): Promise<void> {
   if (opts.out.length >= opts.max || opts.depth <= 0) return;
+  if (opts.deadline && Date.now() > opts.deadline) return;
+  const relClean = rel.replace(/^\/+/, "");
+  if (opts.skip && opts.skip.has(relClean.split("/")[0]?.toLowerCase() ?? "")) return;
   const listing = await listDir(rel);
   if (!listing) return;
   for (const e of listing.entries) {
     if (opts.out.length >= opts.max) return;
-    const childRel = path.posix.join(rel.replace(/^\/+/, ""), e.name);
+    if (opts.deadline && Date.now() > opts.deadline) return;
+    const childRel = path.posix.join(relClean, e.name);
     if (e.type === "dir") {
-      await walkFiles(childRel, { depth: opts.depth - 1, max: opts.max, out: opts.out });
+      await walkFiles(childRel, { ...opts, depth: opts.depth - 1 });
     } else {
       opts.out.push({ path: `/${childRel}`, name: e.name, ext: e.ext });
     }
