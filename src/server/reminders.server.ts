@@ -9,9 +9,9 @@
  * process re-reads the table and never double-sends.
  *
  * What it sends:
- *  - Task due-time reminders: notifyMinutesBefore (default 10) before a
- *    task's dueTime, for tasks due today in Asia/Kolkata.
- *  - Calendar event reminders: same lead time before an event's startUtc.
+ *  - Task due-time pushes: AT the task's dueTime (locked decision — no lead
+ *    time), for tasks due today in Asia/Kolkata.
+ *  - Calendar event pushes: AT an event's startUtc.
  *  - Daily plan digest: at the configured IST time (default 08:00), a
  *    summary of today's tasks + next events (push + email).
  */
@@ -63,15 +63,21 @@ export async function loadNotificationSettings(
   return { settings: { ...DEFAULT_NOTIFICATION_SETTINGS, ...ns }, raw };
 }
 
-/** Persist notification settings inside user_settings JSON. */
+/** Persist notification settings — MERGES into the blob, never replaces it
+ *  (the settings blob also holds OAuth creds and other server-only keys). */
 export async function saveNotificationSettings(
   userId: string,
   patch: Partial<NotificationSettings>,
 ): Promise<NotificationSettings> {
-  const { settings } = await loadNotificationSettings(userId);
-  const next = { ...settings, ...patch };
   const { userSettings } = await import("@/db/schema");
-  const merged = { notificationSettings: next } as Record<string, unknown>;
+  const srows = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+  const raw = (srows[0]?.settings ?? {}) as Record<string, unknown>;
+  const next = {
+    ...DEFAULT_NOTIFICATION_SETTINGS,
+    ...((raw["notificationSettings"] ?? {}) as Partial<NotificationSettings>),
+    ...patch,
+  };
+  const merged = { ...raw, notificationSettings: next } as Record<string, unknown>;
   await db
     .insert(userSettings)
     .values({
@@ -160,7 +166,6 @@ export async function runReminderTick(force = false): Promise<TickResult> {
 
   for (const uid of userIds) {
     const { settings } = await loadNotificationSettings(uid);
-    const lead = settings.notifyMinutesBefore;
     const emailTo = settings.emailNotifications ? (settings.emailTo ?? null) : null;
 
     if (settings.taskReminders) {
@@ -169,16 +174,17 @@ export async function runReminderTick(force = false): Promise<TickResult> {
         const hh = Number(tparts[0] ?? 0);
         const mm = Number(tparts[1] ?? 0);
         const dueMin = hh * 60 + mm;
-        const delta = dueMin - minutesOfDay; // minutes until due
-        const inWindow = delta <= lead && delta >= 0;
-        const overdue = delta < 0 && delta >= -lead; // catch late ticks
-        if (!(inWindow || overdue)) continue;
+        // Locked decision: the ONLY trigger is the due time itself. Fire in
+        // the due minute ± tick tolerance, and catch the tail of the minute
+        // after (missed tick), never early.
+        const delta = minutesOfDay - dueMin; // minutes after due (0 = now)
+        if (delta < 0 || delta > 2) continue;
         const key = `task:${t.id}:${istDate}`;
         if (!force && (await alreadySent(uid, key))) continue;
         if (force && (await alreadySent(uid, key))) {
           // force (dev tick) re-sends but keeps the idempotency marker.
           const attempts = await pushToUser(uid, {
-            title: `Due soon: ${t.title}`,
+            title: `Due now: ${t.title}`,
             body: `Due at ${t.dueTime} today.`,
             url: "/tasks",
           });
@@ -190,7 +196,7 @@ export async function runReminderTick(force = false): Promise<TickResult> {
           key,
           "task-due",
           {
-            title: `Due soon: ${t.title}`,
+            title: `Due now: ${t.title}`,
             body: `Due at ${t.dueTime} today.`,
             url: "/tasks",
           },
@@ -205,7 +211,8 @@ export async function runReminderTick(force = false): Promise<TickResult> {
       for (const e of evRows.filter((r) => r.userId === uid && r.startUtc && !r.allDay)) {
         const start = new Date(e.startUtc!).getTime();
         const deltaMin = (start - utc.getTime()) / 60_000;
-        if (deltaMin > lead || deltaMin < -lead) continue;
+        // At start (± 60s tick tolerance), never early.
+        if (deltaMin > 0.5 || deltaMin < -1.5) continue;
         const key = `event:${e.id}:${e.startUtc}`;
         if (!force && (await alreadySent(uid, key))) continue;
         if (force && (await alreadySent(uid, key))) {
@@ -275,9 +282,17 @@ export async function runReminderTick(force = false): Promise<TickResult> {
   return result;
 }
 
-/** Idempotent in-process 60s scheduler. */
+/** Idempotent in-process 60s scheduler. Started once at server boot from the
+ *  Nitro node-server entry (see server-start.server.ts) — not lazily — so due
+ *  pushes fire even when no one has the app open. On boot the first tick
+ *  recomputes pending reminders; reminder_state prevents double-sends. */
 export function startReminderScheduler(): void {
   if (schedulerState.__kamkaziReminderTimer) return;
+  console.log("[reminders] scheduler started (60s tick)");
+  // Boot pass — recompute what's pending right now.
+  setTimeout(() => {
+    runReminderTick().catch((err) => console.error("[reminders] boot tick failed:", err));
+  }, 15_000);
   schedulerState.__kamkaziReminderTimer = setInterval(() => {
     runReminderTick().catch((err) => console.error("[reminders] tick failed:", err));
   }, TICK_INTERVAL_MS);

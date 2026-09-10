@@ -845,7 +845,40 @@ interface PushInfo {
   emailConfigured: boolean;
   emailFrom: string | null;
   notificationSettings: NotificationSettings;
-  devices: { id: string; endpoint: string; userAgent: string | null; createdAtTs: string }[];
+  devices: {
+    id: string;
+    endpoint: string;
+    userAgent: string | null;
+    createdAtTs: string;
+    lastUsedTs: string | null;
+  }[];
+}
+
+/** "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Safari/605" → "Mac Safari". */
+function deviceName(ua: string): string {
+  const os = /iPhone/.test(ua)
+    ? "iPhone"
+    : /iPad/.test(ua)
+      ? "iPad"
+      : /Macintosh/.test(ua)
+        ? "Mac"
+        : /Android/.test(ua)
+          ? "Android"
+          : /Windows/.test(ua)
+            ? "Windows"
+            : /Linux/.test(ua)
+              ? "Linux"
+              : "Device";
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /Chrome\//.test(ua)
+      ? "Chrome"
+      : /Firefox\//.test(ua)
+        ? "Firefox"
+        : /Safari\//.test(ua)
+          ? "Safari"
+          : "Browser";
+  return `${os} · ${browser}`;
 }
 
 function base64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
@@ -1038,6 +1071,13 @@ function NotificationsCard() {
           notifications there.
         </div>
       ) : null}
+      {permState === "denied" ? (
+        <div className="my-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-600 dark:text-amber-300">
+          Notifications are blocked for this site in your browser settings. To allow them: click the
+          padlock / tune icon next to the address bar &rarr; Site settings &rarr; Notifications
+          &rarr; Allow, then reload.
+        </div>
+      ) : null}
 
       <Row
         label="Push on this device"
@@ -1091,12 +1131,8 @@ function NotificationsCard() {
         </button>
       </Row>
 
-      <Row label="Remind me before" hint="Tasks with a due time, and calendar events">
-        <Select
-          value={`${ns.notifyMinutesBefore} minutes`}
-          options={["5 minutes", "10 minutes", "15 minutes", "30 minutes"]}
-          onChange={(v) => patchSettings({ notifyMinutesBefore: parseInt(v, 10) })}
-        />
+      <Row label="Remind me at" hint="Pushes fire AT the task's due time (and at event start)">
+        <span className="text-[13px] text-muted-foreground">Due time only</span>
       </Row>
 
       <Row label="Task reminders">
@@ -1162,6 +1198,55 @@ function NotificationsCard() {
           />
         </Row>
       ) : null}
+
+      {/* Devices — one row per push_subscriptions entry (created / last used). */}
+      <div className="border-b border-border pt-3">
+        <p className="mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Devices ({info?.devices.length ?? 0})
+        </p>
+        {(info?.devices ?? []).length === 0 ? (
+          <p className="pb-3 text-[12.5px] text-muted-foreground">
+            No devices subscribed yet — enable notifications above.
+          </p>
+        ) : (
+          <ul className="pb-3">
+            {(info?.devices ?? []).map((d) => {
+              const shortEp = d.endpoint.replace(/^https:\/\/([^/]+)\/.{0,10}/, "$1…");
+              return (
+                <li key={d.id} className="flex items-center gap-3 border-b border-border py-2 last:border-b-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px]">
+                      {d.userAgent ? deviceName(d.userAgent) : "Unknown device"}
+                    </p>
+                    <p className="truncate text-[11.5px] text-muted-foreground">
+                      Added {new Date(d.createdAtTs).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      {d.lastUsedTs ? ` · last push ${new Date(d.lastUsedTs).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : " · never pushed"}
+                      {" · "}
+                      {shortEp}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void fetch("/api/push?action=unsubscribe", {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ endpoint: d.endpoint }),
+                      }).then(() => {
+                        toast("Device removed");
+                        void load();
+                      });
+                    }}
+                    className="shrink-0 text-[12.5px] text-destructive disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
       <Row
         label="Send test email"

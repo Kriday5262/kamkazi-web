@@ -45,6 +45,7 @@ export async function pushInfoHandler(request: Request): Promise<Response> {
       endpoint: pushSubscriptions.endpoint,
       userAgent: pushSubscriptions.userAgent,
       createdAtTs: pushSubscriptions.createdAtTs,
+      lastUsedTs: pushSubscriptions.lastUsedTs,
     })
     .from(pushSubscriptions)
     .where(eq(pushSubscriptions.userId, session.uid));

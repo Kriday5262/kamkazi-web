@@ -21,6 +21,8 @@ services:
     volumes:
       # Phase 2 — real task attachments live on the NAS share.
       - /media/HIKVISION/Shantanu/Work/Kamkazi/Attachments:/app/attachments:rw
+      # Phase 4 — File Browser: the user's own subtree of the external drive.
+      - /media/HIKVISION/Shantanu:/app/shantanu-drive:rw
     environment:
       NODE_ENV: production
       NITRO_PORT: "8086"
