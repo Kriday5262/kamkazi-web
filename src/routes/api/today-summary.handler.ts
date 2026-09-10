@@ -105,7 +105,7 @@ export async function todaySummaryHandler(request: Request): Promise<Response> {
     .map(
       (t) =>
         `- ${t.done ? "[done] " : ""}${t.title}${t.dueTime ? ` at ${t.dueTime}` : ""}${
-          t.dueDate && t.dueDate < today ? " (OVERDUE)" : ""
+          !t.done && t.dueDate && t.dueDate < today ? " (OVERDUE)" : ""
         }${t.priority === "high" ? " (high priority)" : ""}`,
     )
     .join("\n");
@@ -121,7 +121,7 @@ export async function todaySummaryHandler(request: Request): Promise<Response> {
   const prompt = `Today is ${today}. Write a very short "at a glance" summary of the user's day. Rules:
 - 3 to 7 short lines, each one a bullet or a short sentence. NEVER long paragraphs.
 - Use **bold** on the key words (titles, counts, times).
-- one or two lines for tasks: separate OPEN tasks from completed ones — count overdue using ONLY not-done tasks (if some overdue tasks are already marked done, say e.g. "3 overdue (all marked done)" instead of alarming); mention the most important open ones.
+- one or two lines for tasks: separate OPEN tasks from completed ones — completed tasks are NOT overdue and must never appear as overdue; count overdue using ONLY not-done tasks; mention the most important open ones.
 - No markdown headers. No greetings like "Good morning". Do not mention weather.
 
 Events today:

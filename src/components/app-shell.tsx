@@ -4,7 +4,6 @@ import {
   CalendarDays,
   CalendarRange,
   Command,
-  ListTodo,
   Moon,
   NotebookPen,
   PanelLeftClose,
@@ -31,17 +30,10 @@ const NAV: { to: string; label: string; icon: LucideIcon; tint: string; bg: stri
   },
   {
     to: "/calendar",
-    label: "Calendar",
+    label: "Agenda",
     icon: CalendarRange,
     tint: "text-accent-teal",
     bg: "bg-accent-teal/12",
-  },
-  {
-    to: "/tasks",
-    label: "Tasks",
-    icon: ListTodo,
-    tint: "text-accent-blue",
-    bg: "bg-accent-blue/12",
   },
 
   {
@@ -142,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {!sidebarCollapsed ? (
                 <>
                   <span className="flex-1">{label}</span>
-                  {to === "/tasks" && openCount > 0 ? (
+                  {to === "/calendar" && openCount > 0 ? (
                     <span className="num rounded-full bg-primary/12 px-2 text-[12px] font-bold text-primary">
                       {openCount}
                     </span>

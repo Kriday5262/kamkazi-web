@@ -142,9 +142,7 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
                 className="tnum rounded-md bg-surface-2 px-2 py-1 text-[13px] outline-none"
                 aria-label="Due time"
               />
-              <span className="text-[12px] text-muted-foreground">
-                Notifications fire at due time
-              </span>
+
             </div>
           </Row>
 

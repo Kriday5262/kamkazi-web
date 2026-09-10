@@ -112,6 +112,9 @@ type ViewMode = "month" | "week" | "day";
 export function CalendarScreen() {
   const { tasks, addTask, settings } = useStore();
   const [selectedTaskId, setSelectedTaskIdState] = useState<string | null>(null);
+  const [quickTask, setQuickTask] = useState("");
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const captureRef = useRef<HTMLInputElement>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [today, setToday] = useState(TODAY);
   const todayParts = today.split("-").map(Number) as [number, number, number];
@@ -371,11 +374,9 @@ export function CalendarScreen() {
               <button
                 type="button"
                 onClick={() => {
-                  const title = window.prompt("New task (due selected day)");
-                  if (title && title.trim()) {
-                    addTask(title.trim(), undefined, selected);
-                    showToast("Task added to " + longDate(selected));
-                  }
+                  // Open (and focus) the quick-capture input to add a task due selected day.
+                  setCaptureOpen(true);
+                  window.setTimeout(() => captureRef.current?.focus(), 50);
                 }}
                 className="tap flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-[13px] font-semibold shadow-[var(--shadow-panel)]"
               >
@@ -530,6 +531,31 @@ export function CalendarScreen() {
                   onDeleteEvent={(id) => void deleteEvent(id)}
                 />
               )}
+              {/* quick-capture input for the selected day (Today-style) */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!quickTask.trim()) return;
+                  addTask(quickTask.trim(), undefined, selected);
+                  setQuickTask("");
+                  showToast("Task added to " + longDate(selected));
+                  captureRef.current?.focus();
+                }}
+                className={cn(
+                  "mt-2 flex items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2.5 shadow-[var(--shadow-panel)] focus-within:border-primary/40",
+                  !captureOpen && "hidden",
+                )}
+              >
+                <Plus className="size-[17px] text-primary" strokeWidth={2.4} aria-hidden />
+                <input
+                  ref={captureRef}
+                  value={quickTask}
+                  onChange={(e) => setQuickTask(e.target.value)}
+                  placeholder={"Add to " + longDate(selected) + "…"}
+                  aria-label={"Add a task for " + longDate(selected)}
+                  className="w-full bg-transparent text-[14px] font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
+                />
+              </form>
             </section>
           </div>
 

@@ -33,3 +33,4 @@ dist-ssr
 .env
 backups/
 .output/
+.edits.json
