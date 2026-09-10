@@ -18,6 +18,8 @@ export interface ChatStreamEvents {
     toolResults: { tool: string; summary: string }[];
   }) => void;
   onError?: (message: string) => void;
+  /** AbortSignal so the UI can stop generation mid-stream. */
+  signal?: AbortSignal;
 }
 
 /** POST /api/chat and consume the event stream. Returns conversationId. */
@@ -30,6 +32,7 @@ export async function streamChat(
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ message, conversationId }),
+    ...(events.signal ? { signal: events.signal } : {}),
   });
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "");

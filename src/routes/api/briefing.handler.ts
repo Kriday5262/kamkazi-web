@@ -6,6 +6,7 @@
  * suggestion), generated at most once per hour (in-memory per-user cache).
  * Falls back to a static summary built from the DB if the AI call fails.
  */
+import { istToday } from "@/lib/format";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { tasks, userSettings } from "@/db/schema";
@@ -36,7 +37,7 @@ async function loadAiSettings(uid: string): Promise<AiSettings> {
 }
 
 async function staticBriefing(uid: string, weather: WeatherNow | null): Promise<Briefing> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = istToday();
   const rows = await db
     .select()
     .from(tasks)
@@ -87,7 +88,7 @@ export async function briefingHandler(request: Request): Promise<Response> {
       fetchOpenMeteo(settings).catch(() => null),
     ]);
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = istToday();
     const todays = taskRows.filter((t) => !t.dueDate || t.dueDate <= today);
     const taskLines = todays
       .slice(0, 15)

@@ -11,6 +11,7 @@
  * Cached in-memory per (uid + date + data hash) for ~15 min so page loads
  * don't re-call the model; `force: true` bypasses the cache (refresh button).
  */
+import { istToday } from "@/lib/format";
 import { createHash } from "node:crypto";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -45,7 +46,7 @@ export async function todaySummaryHandler(request: Request): Promise<Response> {
   };
   const today = /^\d{4}-\d{2}-\d{2}$/.test(String(body.date ?? ""))
     ? String(body.date)
-    : new Date().toISOString().slice(0, 10);
+    : istToday();
   const force = body.force === true;
 
   // ---- gather today's data (same shapes the UI renders) ----

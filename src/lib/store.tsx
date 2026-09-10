@@ -126,6 +126,10 @@ interface Store {
   deleteNote: (id: string) => void;
   addConversation: () => string;
   sendMessage: (conversationId: string, text: string) => void;
+  /** True while an AI reply is streaming into a bubble. */
+  streamingBusy: boolean;
+  /** Stop the in-flight generation (abort the stream, keep partial text). */
+  stopStreaming: () => void;
   resolvePendingAction: (
     conversationId: string,
     messageId: string,
@@ -196,6 +200,8 @@ export function StoreProvider({
     initial?.datedEvents ?? {},
   );
   const [notebooks, setNotebooks] = useState(initial?.notebooks ?? fallbackNotebooks);
+  const [streamingBusy, setStreamingBusy] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     // Load persisted preference after hydration to avoid SSR/client mismatch
@@ -534,6 +540,10 @@ export function StoreProvider({
       messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content } : m)),
     });
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setStreamingBusy(true);
+
     setConversations((prev) =>
       prev.map((c) => {
         if (c.id !== conversationId) return c;
@@ -553,6 +563,7 @@ export function StoreProvider({
       let streamed = "";
       try {
         await streamChat(text, conversationId, {
+          signal: controller.signal,
           onDelta: (d) => {
             streamed += d;
             setConversations((prev) =>
@@ -595,9 +606,18 @@ export function StoreProvider({
           },
         });
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "AI request failed");
+        // Aborts from the stop button are expected — keep the partial text.
+        const aborted = e instanceof DOMException && e.name === "AbortError";
+        if (!aborted) toast.error(e instanceof Error ? e.message : "AI request failed");
+      } finally {
+        setStreamingBusy(false);
+        abortRef.current = null;
       }
     })();
+  }, []);
+
+  const stopStreaming = useCallback(() => {
+    abortRef.current?.abort();
   }, []);
 
   const resolvePendingAction = useCallback(
@@ -752,6 +772,8 @@ export function StoreProvider({
       deleteNote,
       addConversation,
       sendMessage,
+      streamingBusy,
+      stopStreaming,
       resolvePendingAction,
       renameConversation,
       deleteConversation,
@@ -784,6 +806,8 @@ export function StoreProvider({
       deleteNote,
       addConversation,
       sendMessage,
+      streamingBusy,
+      stopStreaming,
       resolvePendingAction,
       renameConversation,
       deleteConversation,

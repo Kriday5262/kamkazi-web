@@ -14,7 +14,10 @@ import {
 } from "./google-oauth.server";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const cache = new Map<string, { at: number; value: GmailMessageSummary[] }>();
+const cache = new Map<
+  string,
+  { at: number; value: GmailMessageSummary[] | { messages: GmailMessageSummary[]; nextPageToken: string | null } }
+>();
 
 export interface GmailMessageSummary {
   id: string;
@@ -34,6 +37,7 @@ interface Header {
 
 interface GmailListResp {
   messages?: { id: string; threadId: string }[];
+  nextPageToken?: string;
   resultSizeEstimate?: number;
 }
 
@@ -90,14 +94,34 @@ export async function listRecentEmails(
   token: string,
   opts: { max?: number; query?: string; fresh?: boolean } = {},
 ): Promise<GmailMessageSummary[]> {
+  return (await listEmailsPage(token, opts)).messages;
+}
+
+/**
+ * Paged list (Phase 3 Email section): like listRecentEmails but returns the
+ * Gmail nextPageToken so the UI can "Load more". Cache key includes the
+ * page token.
+ */
+export async function listEmailsPage(
+  token: string,
+  opts: {
+    max?: number;
+    query?: string;
+    fresh?: boolean;
+    pageToken?: string | undefined;
+  } = {},
+): Promise<{ messages: GmailMessageSummary[]; nextPageToken: string | null }> {
   const max = Math.min(Math.max(opts.max ?? 10, 1), 50);
-  const key = `list:${token.slice(-12)}:${opts.query ?? ""}:${max}`;
+  const key = `page:${token.slice(-12)}:${opts.query ?? ""}:${max}:${opts.pageToken ?? ""}`;
   const hit = cache.get(key);
   // fresh=true (manual refresh) skips the cache read but still re-populates it.
-  if (!opts.fresh && hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
+    if (!opts.fresh && hit && Date.now() - hit.at < CACHE_TTL_MS) {
+      return hit.value as { messages: GmailMessageSummary[]; nextPageToken: string | null };
+    }
 
   const p = new URLSearchParams({ maxResults: String(max) });
   if (opts.query) p.set("q", opts.query);
+  if (opts.pageToken) p.set("pageToken", opts.pageToken);
   const res = await fetch(`${API_BASE}/gmail/v1/users/me/messages?${p.toString()}`, {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(15_000),
@@ -108,8 +132,9 @@ export async function listRecentEmails(
   const data = (await res.json()) as GmailListResp;
   const ids = (data.messages ?? []).map((m) => m.id);
   const results = await getMetadataBatch(token, ids);
-  cache.set(key, { at: Date.now(), value: results });
-  return results;
+  const value = { messages: results, nextPageToken: data.nextPageToken ?? null };
+  cache.set(key, { at: Date.now(), value });
+  return value;
 }
 
 export async function searchEmails(
@@ -128,8 +153,16 @@ export async function searchEmails(
 
 interface GmailFullPart {
   mimeType?: string;
-  body?: { data?: string };
+  filename?: string;
+  body?: { data?: string; attachmentId?: string; size?: number };
   parts?: GmailFullPart[];
+}
+
+export interface GmailAttachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  attachmentId: string;
 }
 
 interface GmailFullResp {
@@ -433,7 +466,9 @@ export function sanitizeEmailHtml(input: string): string {
 export async function readEmail(
   token: string,
   msgId: string,
-): Promise<GmailMessageSummary & { body: string; html?: string }> {
+): Promise<
+  GmailMessageSummary & { body: string; html?: string; attachments?: GmailAttachment[] }
+> {
   const res = await fetch(
     `${API_BASE}/gmail/v1/users/me/messages/${encodeURIComponent(msgId)}?format=full`,
     { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) },
@@ -472,6 +507,22 @@ export async function readEmail(
   }
   body = (body ?? data.snippet ?? "").trim();
 
+  // Attachments (metadata only — download is a separate read-only call).
+  const attachments: GmailAttachment[] = [];
+  const stack2: GmailFullPart[] = [data.payload as GmailFullPart];
+  while (stack2.length > 0) {
+    const part = stack2.shift()!;
+    if (part.filename && part.body?.attachmentId) {
+      attachments.push({
+        filename: part.filename,
+        mimeType: part.mimeType ?? "application/octet-stream",
+        size: part.body.size ?? 0,
+        attachmentId: part.body.attachmentId,
+      });
+    }
+    if (part.parts) stack2.push(...part.parts);
+  }
+
   return {
     id: data.id,
     threadId: data.threadId ?? data.id,
@@ -483,7 +534,30 @@ export async function readEmail(
     labelIds: data.labelIds ?? [],
     body: body.slice(0, 4000),
     ...(html !== undefined ? { html } : {}),
+    ...(attachments.length > 0 ? { attachments } : {}),
   };
+}
+
+/**
+ * Download a single attachment by Gmail attachmentId. Read-only GET on
+ * users/me/messages/<id>/attachments/<attId> — base64url decoded bytes.
+ */
+export async function getAttachment(
+  token: string,
+  msgId: string,
+  attachmentId: string,
+): Promise<{ data: Buffer; mimeType: string } | null> {
+  const res = await fetch(
+    `${API_BASE}/gmail/v1/users/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachmentId)}`,
+    { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30_000) },
+  );
+  if (!res.ok) return null;
+  const data = (await res.json()) as { data?: string };
+  if (!data.data) return null;
+  const buf = Buffer.from(data.data.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+  // MIME type via a cheap metadata call on the message part is overkill — the
+  // client passes the mimeType it already knows from the attachment listing.
+  return { data: buf, mimeType: "application/octet-stream" };
 }
 
 // ---------------------------------------------------------------------------

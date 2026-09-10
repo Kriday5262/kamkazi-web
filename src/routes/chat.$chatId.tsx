@@ -4,22 +4,9 @@ import { ChatScreen } from "@/components/chat-screen";
 export const Route = createFileRoute("/chat/$chatId")({
   head: () => ({
     meta: [
-      { title: "Conversation — Kamkazi" },
-      {
-        name: "description",
-        content: "A conversation with your assistant about tasks, notes and today's schedule.",
-      },
-      { property: "og:title", content: "Conversation — Kamkazi" },
-      {
-        property: "og:description",
-        content: "A conversation with your assistant about tasks, notes and today's schedule.",
-      },
+      { title: "AI Chat — Kamkazi" },
+      { property: "og:title", content: "AI Chat — Kamkazi" },
     ],
   }),
-  component: ChatRoute,
+  component: () => <ChatScreen />,
 });
-
-function ChatRoute() {
-  const { chatId } = Route.useParams();
-  return <ChatScreen chatId={chatId} />;
-}

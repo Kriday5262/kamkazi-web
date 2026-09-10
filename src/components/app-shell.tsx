@@ -8,6 +8,7 @@ import {
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
+  Mail,
   Search,
   Settings2,
   Sparkles,
@@ -42,6 +43,13 @@ const NAV: { to: string; label: string; icon: LucideIcon; tint: string; bg: stri
     icon: NotebookPen,
     tint: "text-accent-green",
     bg: "bg-accent-green/12",
+  },
+  {
+    to: "/email",
+    label: "Email",
+    icon: Mail,
+    tint: "text-accent-blue",
+    bg: "bg-accent-blue/12",
   },
   {
     to: "/chat",

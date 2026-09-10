@@ -14,6 +14,7 @@
  * Write tools (create_task / complete_task / create_note) are NOT executed
  * here — the client shows a confirmation card and POSTs /api/tool-confirm.
  */
+import { istToday } from "@/lib/format";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { chatMessages, conversations, userSettings } from "@/db/schema";
@@ -108,7 +109,7 @@ export async function chatHandler(request: Request): Promise<Response> {
   const messages: ChatMessageIn[] = [
     {
       role: "system",
-      content: SYSTEM_PROMPT.replace("{date}", new Date().toISOString().slice(0, 10)) + weatherLine,
+      content: SYSTEM_PROMPT.replace("{date}", istToday()) + weatherLine,
     },
     ...history,
   ];

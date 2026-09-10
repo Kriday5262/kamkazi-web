@@ -84,8 +84,7 @@ export function CommandPalette() {
         group: "Commands",
         icon: MessageSquarePlus,
         run: () => {
-          const id = addConversation();
-          void navigate({ to: "/chat/$chatId", params: { chatId: id } });
+          void navigate({ to: "/chat/$chatId", params: { chatId: "single" } });
           close();
         },
       },
@@ -188,7 +187,7 @@ export function CommandPalette() {
       }));
 
     const chatItems: Item[] = conversations
-      .filter((c) => match(c.title))
+      .filter((c) => match(c.title) && c.messages.length > 0)
       .slice(0, 4)
       .map((c) => ({
         id: `chat-${c.id}`,

@@ -27,6 +27,12 @@ export function formatDuration(min?: number | undefined) {
   return m ? `${h} hr ${m} min` : `${h} hr`;
 }
 
+/** "Today" in IST (+05:30) — the app's canonical calendar day (see seed.ts stamp). */
+export function istToday(): string {
+  const ist = new Date(Date.now() + 330 * 60_000);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, "0")}-${String(ist.getUTCDate()).padStart(2, "0")}`;
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

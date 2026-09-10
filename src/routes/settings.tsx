@@ -82,7 +82,7 @@ function SettingsPage() {
           <Row label="Start page" hint="Where the app lands after sign-in">
             <Select
               value={settings.startPage ?? "Today"}
-              options={["Today", "Agenda", "Notes", "Chat"]}
+              options={["Today", "Agenda", "Notes", "Email", "Chat"]}
               onChange={(v) => updateSetting("startPage", v)}
             />
           </Row>

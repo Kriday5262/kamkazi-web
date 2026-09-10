@@ -11,12 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as EmailRouteImport } from './routes/email'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiAttachmentsRouteImport } from './routes/api/attachments'
 import { Route as ApiBriefingRouteImport } from './routes/api/briefing'
 import { Route as ApiCalendarRouteImport } from './routes/api/calendar'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiEmailAttachmentRouteImport } from './routes/api/email-attachment'
+import { Route as ApiEmailIgnoreRouteImport } from './routes/api/email-ignore'
+import { Route as ApiEmailListRouteImport } from './routes/api/email-list'
 import { Route as ApiEmailReadRouteImport } from './routes/api/email-read'
 import { Route as ApiEmailSummarizeRouteImport } from './routes/api/email-summarize'
 import { Route as ApiExportNotesRouteImport } from './routes/api/export-notes'
@@ -44,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailRoute = EmailRouteImport.update({
+  id: '/email',
+  path: '/email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -74,6 +83,21 @@ const ApiCalendarRoute = ApiCalendarRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEmailAttachmentRoute = ApiEmailAttachmentRouteImport.update({
+  id: '/api/email-attachment',
+  path: '/api/email-attachment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEmailIgnoreRoute = ApiEmailIgnoreRouteImport.update({
+  id: '/api/email-ignore',
+  path: '/api/email-ignore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEmailListRoute = ApiEmailListRouteImport.update({
+  id: '/api/email-list',
+  path: '/api/email-list',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEmailReadRoute = ApiEmailReadRouteImport.update({
@@ -170,12 +194,16 @@ const ApiPushVapidKeyRoute = ApiPushVapidKeyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/email': typeof EmailRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/email-attachment': typeof ApiEmailAttachmentRoute
+  '/api/email-ignore': typeof ApiEmailIgnoreRoute
+  '/api/email-list': typeof ApiEmailListRoute
   '/api/email-read': typeof ApiEmailReadRoute
   '/api/email-summarize': typeof ApiEmailSummarizeRoute
   '/api/export-notes': typeof ApiExportNotesRoute
@@ -198,12 +226,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/email': typeof EmailRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/email-attachment': typeof ApiEmailAttachmentRoute
+  '/api/email-ignore': typeof ApiEmailIgnoreRoute
+  '/api/email-list': typeof ApiEmailListRoute
   '/api/email-read': typeof ApiEmailReadRoute
   '/api/email-summarize': typeof ApiEmailSummarizeRoute
   '/api/export-notes': typeof ApiExportNotesRoute
@@ -227,12 +259,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/email': typeof EmailRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/email-attachment': typeof ApiEmailAttachmentRoute
+  '/api/email-ignore': typeof ApiEmailIgnoreRoute
+  '/api/email-list': typeof ApiEmailListRoute
   '/api/email-read': typeof ApiEmailReadRoute
   '/api/email-summarize': typeof ApiEmailSummarizeRoute
   '/api/export-notes': typeof ApiExportNotesRoute
@@ -257,12 +293,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/calendar'
+    | '/email'
     | '/login'
     | '/settings'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
     | '/api/chat'
+    | '/api/email-attachment'
+    | '/api/email-ignore'
+    | '/api/email-list'
     | '/api/email-read'
     | '/api/email-summarize'
     | '/api/export-notes'
@@ -285,12 +325,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/calendar'
+    | '/email'
     | '/login'
     | '/settings'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
     | '/api/chat'
+    | '/api/email-attachment'
+    | '/api/email-ignore'
+    | '/api/email-list'
     | '/api/email-read'
     | '/api/email-summarize'
     | '/api/export-notes'
@@ -313,12 +357,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/calendar'
+    | '/email'
     | '/login'
     | '/settings'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
     | '/api/chat'
+    | '/api/email-attachment'
+    | '/api/email-ignore'
+    | '/api/email-list'
     | '/api/email-read'
     | '/api/email-summarize'
     | '/api/export-notes'
@@ -342,12 +390,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CalendarRoute: typeof CalendarRoute
+  EmailRoute: typeof EmailRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   ApiAttachmentsRoute: typeof ApiAttachmentsRoute
   ApiBriefingRoute: typeof ApiBriefingRoute
   ApiCalendarRoute: typeof ApiCalendarRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiEmailAttachmentRoute: typeof ApiEmailAttachmentRoute
+  ApiEmailIgnoreRoute: typeof ApiEmailIgnoreRoute
+  ApiEmailListRoute: typeof ApiEmailListRoute
   ApiEmailReadRoute: typeof ApiEmailReadRoute
   ApiEmailSummarizeRoute: typeof ApiEmailSummarizeRoute
   ApiExportNotesRoute: typeof ApiExportNotesRoute
@@ -381,6 +433,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email': {
+      id: '/email'
+      path: '/email'
+      fullPath: '/email'
+      preLoaderRoute: typeof EmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -423,6 +482,27 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/email-attachment': {
+      id: '/api/email-attachment'
+      path: '/api/email-attachment'
+      fullPath: '/api/email-attachment'
+      preLoaderRoute: typeof ApiEmailAttachmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/email-ignore': {
+      id: '/api/email-ignore'
+      path: '/api/email-ignore'
+      fullPath: '/api/email-ignore'
+      preLoaderRoute: typeof ApiEmailIgnoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/email-list': {
+      id: '/api/email-list'
+      path: '/api/email-list'
+      fullPath: '/api/email-list'
+      preLoaderRoute: typeof ApiEmailListRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/email-read': {
@@ -568,12 +648,16 @@ const ApiPushRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CalendarRoute: CalendarRoute,
+  EmailRoute: EmailRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   ApiAttachmentsRoute: ApiAttachmentsRoute,
   ApiBriefingRoute: ApiBriefingRoute,
   ApiCalendarRoute: ApiCalendarRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiEmailAttachmentRoute: ApiEmailAttachmentRoute,
+  ApiEmailIgnoreRoute: ApiEmailIgnoreRoute,
+  ApiEmailListRoute: ApiEmailListRoute,
   ApiEmailReadRoute: ApiEmailReadRoute,
   ApiEmailSummarizeRoute: ApiEmailSummarizeRoute,
   ApiExportNotesRoute: ApiExportNotesRoute,

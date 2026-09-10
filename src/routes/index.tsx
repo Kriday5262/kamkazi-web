@@ -34,9 +34,11 @@ function StartPageRedirect() {
         ? "/calendar"
         : startPage === "Notes"
           ? "/notes"
-          : startPage === "Chat"
-            ? "/chat"
-            : null; // "Today" stays here
+          : startPage === "Email"
+            ? "/email"
+            : startPage === "Chat"
+              ? "/chat"
+              : null; // "Today" stays here
     if (target && window.location.pathname === "/") {
       void navigate({ to: target, replace: true });
     }

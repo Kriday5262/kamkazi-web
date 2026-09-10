@@ -146,7 +146,9 @@ export const loadAll = createServerFn({ method: "GET" })
 export type LoadAllResult = Awaited<ReturnType<typeof loadAll>>;
 
 function isoDateOf(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  // Canonical calendar day is IST (+05:30) — keep in sync with format.ts istToday.
+  const ist = new Date(d.getTime() + 330 * 60_000);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, "0")}-${String(ist.getUTCDate()).padStart(2, "0")}`;
 }
 
 function mapTask(t: typeof tasks.$inferSelect): Task {

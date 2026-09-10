@@ -89,9 +89,16 @@ export interface Conversation {
   messages: ChatMessage[];
 }
 
-/** UTC-based so server render and browser render always agree. */
-const stamp = (d: Date) =>
-  `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+/**
+ * IST-based (+05:30) so server render and browser render always agree AND
+ * "today" matches the user's local calendar day (India) — the previous
+ * UTC-based stamp made the app lag a day between 00:00 and 05:30 IST.
+ */
+const IST_OFFSET_MIN = 330;
+const stamp = (d: Date) => {
+  const ist = new Date(d.getTime() + IST_OFFSET_MIN * 60_000);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, "0")}-${String(ist.getUTCDate()).padStart(2, "0")}`;
+};
 
 export const dayOffset = (n: number) => {
   const d = new Date();
