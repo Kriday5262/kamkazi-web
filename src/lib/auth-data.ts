@@ -405,12 +405,23 @@ export const saveSettingsFn = createServerFn({ method: "POST" })
   .validator((input: { settings: Record<string, unknown> }) => input)
   .handler(async ({ data, context }) => {
     const uid = await requireUid(context);
+    // Merge with the existing blob: server-only keys (googleClientId/
+    // googleClientSecret) are never sent by the client and must survive saves.
+    const existing = await db
+      .select({ settings: userSettings.settings })
+      .from(userSettings)
+      .where(eq(userSettings.userId, uid))
+      .limit(1);
+    const merged = {
+      ...((existing[0]?.settings ?? {}) as Record<string, unknown>),
+      ...data.settings,
+    };
     await db
       .insert(userSettings)
-      .values({ userId: uid, settings: data.settings, updatedAtTs: new Date() })
+      .values({ userId: uid, settings: merged, updatedAtTs: new Date() })
       .onConflictDoUpdate({
         target: userSettings.userId,
-        set: { settings: data.settings, updatedAtTs: new Date() },
+        set: { settings: merged, updatedAtTs: new Date() },
       });
     return { ok: true };
   });
