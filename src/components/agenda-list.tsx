@@ -6,6 +6,7 @@
 import { CalendarDays, Trash2, Pencil } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { EmptyState, TaskCheckbox } from "@/components/primitives";
+import { TagChip } from "@/components/tasks-screen";
 import type { Task } from "@/data/seed";
 import { formatDuration, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -226,6 +227,13 @@ function AgendaTaskRow({ task, onSelect }: { task: Task; onSelect: () => void })
         <span className="block text-[12.5px] text-muted-foreground">
           Task{task.priority === "high" ? " · High priority" : ""}
         </span>
+        {task.tags.length ? (
+          <span className="mt-1 flex flex-wrap gap-1">
+            {task.tags.map((tag) => (
+              <TagChip key={tag} tag={tag} />
+            ))}
+          </span>
+        ) : null}
       </span>
     </div>
   );

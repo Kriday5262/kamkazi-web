@@ -9,38 +9,55 @@ import {
   X,
   Paperclip,
   Plus,
-  ListTree,
+  Download,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { relativeDate, isOverdue } from "@/lib/format";
-import { dayOffset, TODAY, type Task } from "@/data/seed";
+import { type Task } from "@/data/seed";
 import { TaskCheckbox } from "@/components/primitives";
+import { TagChip } from "@/components/tasks-screen";
 import { cn } from "@/lib/utils";
 
 const PRIORITIES: Task["priority"][] = ["none", "low", "medium", "high"];
 const PRIORITY_LABEL: Record<Task["priority"], string> = {
-  none: "No priority",
+  none: "None",
   low: "Low",
   medium: "Medium",
   high: "High",
 };
 
 export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { lists, updateTask, deleteTask, toggleTask } = useStore();
+  const { tasks, updateTask, deleteTask, toggleTask, addTaskAttachment, removeTaskAttachment } =
+    useStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(
-    Boolean(task.reminder || task.repeat || task.tags.length || task.attachments.length),
-  );
   const [newSubtask, setNewSubtask] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const list = lists.find((l) => l.id === task.listId);
+  const allTaskTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tasks) for (const tag of t.tags) if (tag.trim()) set.add(tag.trim());
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [tasks]);
+  const suggestions = allTaskTags.filter(
+    (t) => !task.tags.includes(t) && t.toLowerCase().includes(tagInput.trim().toLowerCase()),
+  );
+
+  const commitTagInput = () => {
+    const tag = tagInput.trim();
+    if (tag && !task.tags.includes(tag)) updateTask(task.id, { tags: [...task.tags, tag] });
+    setTagInput("");
+  };
+
+  const removeTag = (tag: string) =>
+    updateTask(task.id, { tags: task.tags.filter((t) => t !== tag) });
 
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
         <span className="text-[12.5px] text-muted-foreground">
-          {list?.name} · updated {relativeDate(task.updatedAt) || task.updatedAt}
+          updated {relativeDate(task.updatedAt) || task.updatedAt}
         </span>
         <div className="flex items-center gap-1">
           <button
@@ -81,43 +98,43 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
           />
         </div>
 
+        {/* Description: plain textarea, thin border-bottom, no box background */}
         <textarea
           value={task.notes ?? ""}
           onChange={(e) => updateTask(task.id, { notes: e.target.value })}
           placeholder="Add notes"
           aria-label="Task notes"
-          rows={3}
-          className="mt-3 w-full resize-none rounded-lg bg-surface-2/60 px-3 py-2.5 text-[14px] leading-relaxed outline-none placeholder:text-muted-foreground focus:bg-surface-2"
+          rows={5}
+          className="mt-3 w-full resize-none border-b border-border bg-transparent px-0 py-2 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
         />
 
         <div className="mt-5 space-y-1">
           <Row icon={<CalendarDays className="size-4" aria-hidden />} label="Due">
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { label: "Today", value: TODAY },
-                { label: "Tomorrow", value: dayOffset(1) },
-                { label: "Next week", value: dayOffset(7) },
-                { label: "None", value: undefined },
-              ].map((o) => (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={task.dueDate ?? ""}
+                onChange={(e) => updateTask(task.id, { dueDate: e.target.value || undefined })}
+                aria-label="Due date"
+                className="tnum rounded-md bg-surface-2 px-2 py-1 text-[13px] outline-none"
+              />
+              {task.dueDate ? (
                 <button
-                  key={o.label}
                   type="button"
-                  onClick={() => updateTask(task.id, { dueDate: o.value })}
-                  className={cn(
-                    "rounded-md px-2 py-1 text-[12.5px] transition-colors",
-                    task.dueDate === o.value || (!task.dueDate && !o.value)
-                      ? "bg-primary/12 font-medium text-primary"
-                      : "text-muted-foreground hover:bg-surface-2",
-                  )}
+                  onClick={() => updateTask(task.id, { dueDate: undefined })}
+                  className="text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  {o.label}
+                  Clear
                 </button>
-              ))}
+              ) : null}
+              {task.dueDate && isOverdue(task.dueDate) ? (
+                <span className="text-[12.5px] font-medium text-destructive">Overdue</span>
+              ) : null}
             </div>
           </Row>
 
-          {task.dueDate ? (
-            <Row icon={<Bell className="size-4" aria-hidden />} label="Time">
+          <Row icon={<Bell className="size-4" aria-hidden />} label="Time">
+            <div className="flex items-center gap-2">
               <input
                 type="time"
                 value={task.dueTime ?? ""}
@@ -125,11 +142,11 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
                 className="tnum rounded-md bg-surface-2 px-2 py-1 text-[13px] outline-none"
                 aria-label="Due time"
               />
-              {isOverdue(task.dueDate) ? (
-                <span className="ml-2 text-[12.5px] font-medium text-destructive">Overdue</span>
-              ) : null}
-            </Row>
-          ) : null}
+              <span className="text-[12px] text-muted-foreground">
+                Notifications fire at due time
+              </span>
+            </div>
+          </Row>
 
           <Row icon={<Flag className="size-4" aria-hidden />} label="Priority">
             <div className="flex gap-1.5">
@@ -151,19 +168,43 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
             </div>
           </Row>
 
-          <Row icon={<ListTree className="size-4" aria-hidden />} label="List">
-            <select
-              value={task.listId}
-              onChange={(e) => updateTask(task.id, { listId: e.target.value })}
-              aria-label="List"
-              className="rounded-md bg-surface-2 px-2 py-1 text-[13px] outline-none"
-            >
-              {lists.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
+          {/* Tags — chips + input, suggestions from existing tags */}
+          <Row icon={<Tag className="size-4" aria-hidden />} label="Tags">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {task.tags.map((tag) => (
+                <TagChip key={tag} tag={tag} onRemove={() => removeTag(tag)} />
               ))}
-            </select>
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitTagInput();
+                  }
+                }}
+                placeholder="Add tag"
+                aria-label="Add tag"
+                className="min-w-[90px] flex-1 bg-transparent py-1 text-[13px] outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            {suggestions.length ? (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {suggestions.slice(0, 6).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      updateTask(task.id, { tags: [...task.tags, s] });
+                      setTagInput("");
+                    }}
+                    className="rounded-md border border-dashed border-border px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    + {s}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </Row>
         </div>
 
@@ -223,66 +264,68 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
           </form>
         </div>
 
-        {showAdvanced ? (
-          <div className="mt-6 space-y-1 border-t border-border pt-4">
-            <Row icon={<Bell className="size-4" aria-hidden />} label="Reminder">
-              <input
-                value={task.reminder ?? ""}
-                onChange={(e) => updateTask(task.id, { reminder: e.target.value || undefined })}
-                placeholder="None"
-                aria-label="Reminder"
-                className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-              />
-            </Row>
-            <Row icon={<Repeat className="size-4" aria-hidden />} label="Repeat">
-              <input
-                value={task.repeat ?? ""}
-                onChange={(e) => updateTask(task.id, { repeat: e.target.value || undefined })}
-                placeholder="Never"
-                aria-label="Repeat"
-                className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-              />
-            </Row>
-            <Row icon={<Tag className="size-4" aria-hidden />} label="Tags">
-              <input
-                value={task.tags.join(", ")}
-                onChange={(e) =>
-                  updateTask(task.id, {
-                    tags: e.target.value
-                      .split(",")
-                      .map((t) => t.trim())
-                      .filter(Boolean),
-                  })
-                }
-                placeholder="Add tags"
-                aria-label="Tags"
-                className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-              />
-            </Row>
-            <Row icon={<Paperclip className="size-4" aria-hidden />} label="Files">
-              {task.attachments.length ? (
-                <div className="space-y-1">
-                  {task.attachments.map((a) => (
-                    <div key={a.id} className="flex items-center gap-2 text-[13px]">
-                      <span>{a.name}</span>
-                      <span className="text-muted-foreground">{a.size}</span>
-                    </div>
-                  ))}
+        <div className="mt-6 space-y-1 border-t border-border pt-4">
+          <Row icon={<Repeat className="size-4" aria-hidden />} label="Repeat">
+            <input
+              value={task.repeat ?? ""}
+              onChange={(e) => updateTask(task.id, { repeat: e.target.value || undefined })}
+              placeholder="Never"
+              aria-label="Repeat"
+              className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
+            />
+          </Row>
+          <Row icon={<Paperclip className="size-4" aria-hidden />} label="Files">
+            <div className="space-y-1.5">
+              {task.attachments.map((a) => (
+                <div key={a.id} className="flex items-center gap-2 text-[13px]">
+                  {a.path ? (
+                    <a
+                      href={`/api/attachments?path=${encodeURIComponent(a.path)}`}
+                      download
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex min-w-0 items-center gap-1.5 text-primary hover:underline"
+                    >
+                      <Download className="size-3.5 shrink-0" aria-hidden />
+                      <span className="truncate">{a.name}</span>
+                    </a>
+                  ) : (
+                    <span className="truncate">{a.name}</span>
+                  )}
+                  <span className="shrink-0 text-muted-foreground">{a.size}</span>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${a.name}`}
+                    onClick={() => {
+                      if (window.confirm(`Delete attachment “${a.name}”? This can’t be undone.`))
+                        removeTaskAttachment(task.id, a.id);
+                    }}
+                    className="grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                  </button>
                 </div>
-              ) : (
-                <span className="text-[13px] text-muted-foreground">No attachments</span>
-              )}
-            </Row>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(true)}
-            className="mt-6 text-[13px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Reminder, repeat, tags and files
-          </button>
-        )}
+              ))}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) addTaskAttachment(task.id, file);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-primary"
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Upload file
+              </button>
+            </div>
+          </Row>
+        </div>
       </div>
 
       <ConfirmDeleteDialog

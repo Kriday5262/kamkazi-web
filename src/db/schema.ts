@@ -71,7 +71,15 @@ export const tasks = pgTable(
       .notNull()
       .default([]),
     attachments: jsonb("attachments")
-      .$type<{ id: string; name: string; size: string }[]>()
+      .$type<
+        {
+          id: string;
+          name: string;
+          size: string;
+          type?: string | undefined;
+          path?: string | undefined;
+        }[]
+      >()
       .notNull()
       .default([]),
     createdAt: text("created_at").notNull(),

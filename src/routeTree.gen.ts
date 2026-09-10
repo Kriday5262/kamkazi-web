@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ApiAttachmentsRouteImport } from './routes/api/attachments'
 import { Route as ApiBriefingRouteImport } from './routes/api/briefing'
 import { Route as ApiCalendarRouteImport } from './routes/api/calendar'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -53,6 +54,11 @@ const LoginRoute = LoginRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAttachmentsRoute = ApiAttachmentsRouteImport.update({
+  id: '/api/attachments',
+  path: '/api/attachments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBriefingRoute = ApiBriefingRouteImport.update({
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
   '/api/chat': typeof ApiChatRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
   '/api/chat': typeof ApiChatRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
   '/api/chat': typeof ApiChatRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/login'
     | '/settings'
+    | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
     | '/api/chat'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/login'
     | '/settings'
+    | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
     | '/api/chat'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/login'
     | '/settings'
+    | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
     | '/api/chat'
@@ -332,6 +344,7 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
+  ApiAttachmentsRoute: typeof ApiAttachmentsRoute
   ApiBriefingRoute: typeof ApiBriefingRoute
   ApiCalendarRoute: typeof ApiCalendarRoute
   ApiChatRoute: typeof ApiChatRoute
@@ -382,6 +395,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/attachments': {
+      id: '/api/attachments'
+      path: '/api/attachments'
+      fullPath: '/api/attachments'
+      preLoaderRoute: typeof ApiAttachmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/briefing': {
@@ -550,6 +570,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
+  ApiAttachmentsRoute: ApiAttachmentsRoute,
   ApiBriefingRoute: ApiBriefingRoute,
   ApiCalendarRoute: ApiCalendarRoute,
   ApiChatRoute: ApiChatRoute,
@@ -574,13 +595,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

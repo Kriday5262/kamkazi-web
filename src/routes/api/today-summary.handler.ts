@@ -121,7 +121,7 @@ export async function todaySummaryHandler(request: Request): Promise<Response> {
   const prompt = `Today is ${today}. Write a very short "at a glance" summary of the user's day. Rules:
 - 3 to 7 short lines, each one a bullet or a short sentence. NEVER long paragraphs.
 - Use **bold** on the key words (titles, counts, times).
-- Structure: one line for the schedule/events, one or two lines for tasks (mention count and the most important ones, flag overdue), one line for the inbox only if something needs attention, optionally one final short suggestion line.
+- one or two lines for tasks: separate OPEN tasks from completed ones — count overdue using ONLY not-done tasks (if some overdue tasks are already marked done, say e.g. "3 overdue (all marked done)" instead of alarming); mention the most important open ones.
 - No markdown headers. No greetings like "Good morning". Do not mention weather.
 
 Events today:

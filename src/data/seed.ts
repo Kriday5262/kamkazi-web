@@ -21,7 +21,17 @@ export interface Task {
   priority: Priority;
   tags: string[];
   subtasks: Subtask[];
-  attachments: { id: string; name: string; size: string }[];
+  /**
+   * Real uploaded files: path is server-relative (/attachments/<uid>/<taskId>/<file>),
+   * type/sizeBytes optional (older rows keep only id/name/size).
+   */
+  attachments: {
+    id: string;
+    name: string;
+    size: string;
+    type?: string | undefined;
+    path?: string | undefined;
+  }[];
   createdAt: string;
   updatedAt: string;
 }

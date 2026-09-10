@@ -373,7 +373,7 @@ export function CalendarScreen() {
                 onClick={() => {
                   const title = window.prompt("New task (due selected day)");
                   if (title && title.trim()) {
-                    addTask(title.trim(), settings.defaultListId || "inbox", selected);
+                    addTask(title.trim(), undefined, selected);
                     showToast("Task added to " + longDate(selected));
                   }
                 }}

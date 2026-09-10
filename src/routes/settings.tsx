@@ -29,7 +29,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { settings, updateSetting, theme, setTheme, lists, notebooks } = useStore();
+  const { settings, updateSetting, theme, setTheme, notebooks } = useStore();
   const [open, setOpen] = useState<string | null>("General");
 
   return (
@@ -171,15 +171,6 @@ function SettingsPage() {
         </Group>
 
         <Group label="Tasks" open={open} setOpen={setOpen}>
-          <Row label="Default list">
-            <Select
-              value={lists.find((l) => l.id === settings.defaultListId)?.name ?? "Inbox"}
-              options={lists.map((l) => l.name)}
-              onChange={(v) =>
-                updateSetting("defaultListId", lists.find((l) => l.name === v)?.id ?? "inbox")
-              }
-            />
-          </Row>
           <Row label="Default reminder">
             <Select
               value="15 minutes before"

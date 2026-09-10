@@ -1,5 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, MoreHorizontal, Plus, ListTodo, CalendarClock, Sun } from "lucide-react";
+import { CheckCircle2, Plus, Tag, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { TODAY, dayOffset, type Task } from "@/data/seed";
@@ -7,38 +6,58 @@ import { relativeDate, isOverdue, formatTime } from "@/lib/format";
 import { TaskCheckbox, EmptyState, SectionLabel } from "@/components/primitives";
 import { TaskDetail } from "@/components/task-detail";
 import { PageHeader } from "@/components/app-shell";
-import { ManageEntityDialog } from "@/components/manage-entity-dialog";
-import { listIcon } from "@/components/list-icons";
 import { cn } from "@/lib/utils";
 
-// Legacy icon keys resolve through the shared curated set.
-const iconFor = (key: string) => listIcon(key);
+/**
+ * Distinct, sorted tag list derived from all tasks (no tag registry table —
+ * tags live on tasks.tags text[]).
+ */
+export function allTags(tasks: Task[]): string[] {
+  const set = new Set<string>();
+  for (const t of tasks) for (const tag of t.tags) if (tag.trim()) set.add(tag.trim());
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
 
-export const SMART_LISTS = [
-  { id: "today", name: "Today", icon: Sun },
-  { id: "upcoming", name: "Upcoming", icon: CalendarClock },
-];
+/** Small rounded tag chip (Gmail-chip styling), shared by rows + detail. */
+export function TagChip({ tag, onRemove }: { tag: string; onRemove?: () => void }) {
+  return (
+    <span className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+      <span className="truncate">{tag}</span>
+      {onRemove ? (
+        <button
+          type="button"
+          aria-label={`Remove tag ${tag}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="grid size-3.5 place-items-center rounded-sm transition-colors hover:bg-primary/20"
+        >
+          <X className="size-2.5" aria-hidden />
+        </button>
+      ) : null}
+    </span>
+  );
+}
 
 export function TaskRow({
   task,
   selected,
   onSelect,
-  showList = true,
+  showTags = true,
 }: {
   task: Task;
   selected?: boolean;
   onSelect: () => void;
-  showList?: boolean;
+  showTags?: boolean;
 }) {
-  const { toggleTask, lists } = useStore();
-  const list = lists.find((l) => l.id === task.listId);
+  const { toggleTask } = useStore();
   const overdue = isOverdue(task.dueDate) && !task.done;
 
   const meta = [
     task.dueDate
       ? `${relativeDate(task.dueDate)}${task.dueTime ? ` · ${formatTime(task.dueTime)}` : ""}`
       : "",
-    showList && task.listId !== "inbox" ? (list?.name ?? "") : "",
     task.subtasks.length
       ? `${task.subtasks.filter((s) => s.done).length}/${task.subtasks.length}`
       : "",
@@ -86,6 +105,13 @@ export function TaskRow({
             {meta.join(" · ")}
           </span>
         ) : null}
+        {showTags && task.tags.length ? (
+          <span className="mt-1 flex flex-wrap gap-1">
+            {task.tags.map((tag) => (
+              <TagChip key={tag} tag={tag} />
+            ))}
+          </span>
+        ) : null}
       </span>
       {task.priority === "high" && !task.done ? (
         <span
@@ -95,57 +121,51 @@ export function TaskRow({
           High
         </span>
       ) : null}
-      {task.tags?.includes("Gmail") ? (
-        <span
-          className="mt-1 shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
-          aria-label="From Gmail"
-        >
-          Gmail
-        </span>
-      ) : null}
     </div>
   );
 }
 
-export function TasksScreen({ listId }: { listId: string }) {
-  const { tasks, lists, addTask, addList, updateList, deleteList } = useStore();
-  const navigate = useNavigate();
+/** Smart views: /tasks (all), /tasks/upcoming, /tasks/today. */
+export const SMART_TASK_VIEWS = ["today", "upcoming"] as const;
+
+export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFilter?: string }) {
+  const { tasks, addTask } = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [newListName, setNewListName] = useState("");
-  const [creatingList, setCreatingList] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [manageOpen, setManageOpen] = useState(false);
+  // Active tag filters (OR-union). Seed from URL when provided.
+  const [activeTags, setActiveTags] = useState<string[]>(tagFilter ? [tagFilter] : []);
 
-  const editingList = lists.find((l) => l.id === editingId) ?? null;
-  const editingCount = editingId ? tasks.filter((t) => t.listId === editingId).length : 0;
+  const tags = useMemo(() => allTags(tasks), [tasks]);
 
-  const title =
-    SMART_LISTS.find((l) => l.id === listId)?.name ??
-    lists.find((l) => l.id === listId)?.name ??
-    "Tasks";
+  const toggleTag = (tag: string) =>
+    setActiveTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
 
-  const visible = useMemo(() => {
-    if (listId === "today") return tasks.filter((t) => t.dueDate && t.dueDate <= TODAY);
-    if (listId === "upcoming") return tasks.filter((t) => t.dueDate && t.dueDate > TODAY);
-    return tasks.filter((t) => t.listId === listId);
-  }, [tasks, listId]);
+  const base = useMemo(() => {
+    if (view === "today") return tasks.filter((t) => t.dueDate && t.dueDate <= TODAY);
+    if (view === "upcoming") return tasks.filter((t) => t.dueDate && t.dueDate > TODAY);
+    return tasks;
+  }, [tasks, view]);
+
+  const visible = useMemo(
+    () =>
+      activeTags.length === 0
+        ? base
+        : base.filter((t) => t.tags.some((tag) => activeTags.includes(tag))),
+    [base, activeTags],
+  );
 
   const open = visible.filter((t) => !t.done);
   const done = visible.filter((t) => t.done);
 
-  // Week buckets (Upcoming smart list): what's coming soon gets its own bucket.
+  // Week buckets (Upcoming smart view).
   const buckets = useMemo(() => {
-    if (listId !== "upcoming") return null;
+    if (view !== "upcoming") return null;
     const tomorrow = dayOffset(1);
-    const endOfWeek = (() => {
-      const d = new Date(`${TODAY}T00:00:00Z`);
-      const dow = (d.getUTCDay() + 6) % 7; // Monday=0
-      const stamp = (x: Date) => x.toISOString().slice(0, 10);
-      const monday = new Date(d);
-      monday.setUTCDate(d.getUTCDate() - dow + 7); // next Monday
-      return stamp(monday);
-    })();
+    const d = new Date(`${TODAY}T00:00:00Z`);
+    const dow = (d.getUTCDay() + 6) % 7; // Monday=0
+    const monday = new Date(d);
+    monday.setUTCDate(d.getUTCDate() - dow + 7); // next Monday
+    const endOfWeek = monday.toISOString().slice(0, 10);
     const mk = (name: string, items: Task[]) => ({ name, items });
     return [
       mk(
@@ -161,187 +181,128 @@ export function TasksScreen({ listId }: { listId: string }) {
         open.filter((t) => (t.dueDate ?? "") >= endOfWeek),
       ),
     ];
-  }, [open, listId]);
+  }, [open, view]);
+
   const selected = tasks.find((t) => t.id === selectedId) ?? null;
 
-  const countFor = (id: string) => {
-    if (id === "today")
-      return tasks.filter((t) => !t.done && t.dueDate && t.dueDate <= TODAY).length;
-    if (id === "upcoming")
-      return tasks.filter((t) => !t.done && t.dueDate && t.dueDate > TODAY).length;
-    return tasks.filter((t) => !t.done && t.listId === id).length;
-  };
+  const title = view === "today" ? "Today" : view === "upcoming" ? "Upcoming" : "All tasks";
+  const subtitle = `${open.length} open · ${done.length} completed${
+    activeTags.length ? ` · ${activeTags.map((t) => `#${t}`).join(", ")}` : ""
+  }`;
 
   return (
-    <div className="flex min-h-screen">
-      {/* list rail */}
-      <div className="hidden w-[210px] shrink-0 flex-col border-r border-border bg-background px-3 py-4 lg:flex">
-        <SectionLabel>Smart lists</SectionLabel>
-        <div className="mb-5 flex flex-col gap-0.5">
-          {SMART_LISTS.map(({ id, name, icon: Icon }) => (
-            <RailLink
-              key={id}
-              to="/tasks/$listId"
-              id={id}
-              active={listId === id}
-              count={countFor(id)}
-            >
-              <Icon className="size-4 text-accent-amber" aria-hidden />
-              {name}
-            </RailLink>
-          ))}
-        </div>
-        <SectionLabel>Lists</SectionLabel>
-        <div className="flex flex-col gap-0.5">
-          {lists.map((l) => {
-            const Icon = iconFor(l.icon);
-            return (
-              <RailLink
-                key={l.id}
-                to="/tasks/$listId"
-                id={l.id}
-                active={listId === l.id}
-                count={countFor(l.id)}
-                onManage={
-                  editingId === l.id && manageOpen
-                    ? undefined
-                    : () => {
-                        setEditingId(l.id);
-                        setManageOpen(true);
-                      }
-                }
+    <div className="flex min-h-screen flex-col">
+      <PageHeader title={title} subtitle={subtitle} />
+
+      <div className="mx-auto w-full max-w-2xl flex-1 px-3 py-4 md:px-6">
+        {/* quick add */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!draft.trim()) return;
+            const dueDate =
+              view === "today" ? TODAY : view === "upcoming" ? dayOffset(1) : undefined;
+            setSelectedId(addTask(draft.trim(), undefined, dueDate));
+            setDraft("");
+          }}
+          className="panel mb-3 flex items-center gap-3 px-3 py-2.5 focus-within:border-border-strong"
+        >
+          <Plus className="size-[18px] text-muted-foreground" aria-hidden />
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Add a task"
+            aria-label="Add a task"
+            className="w-full bg-transparent text-[14.5px] outline-none placeholder:text-muted-foreground"
+          />
+        </form>
+
+        {/* tag filter chips (OR union, with open-count per tag) */}
+        {tags.length ? (
+          <div className="mb-4 flex flex-wrap items-center gap-1.5">
+            <Tag className="size-3.5 text-muted-foreground" aria-hidden />
+            {tags.map((tag) => {
+              const count = tasks.filter((t) => !t.done && t.tags.includes(tag)).length;
+              const active = activeTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => toggleTag(tag)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12.5px] transition-colors",
+                    active
+                      ? "border-transparent bg-primary/12 font-medium text-primary"
+                      : "border-border text-muted-foreground hover:bg-surface-2",
+                  )}
+                >
+                  {tag}
+                  <span className="tnum opacity-70">{count}</span>
+                </button>
+              );
+            })}
+            {activeTags.length ? (
+              <button
+                type="button"
+                onClick={() => setActiveTags([])}
+                className="ml-1 text-[12px] text-muted-foreground hover:text-foreground"
               >
-                <Icon className="size-4" style={{ color: l.color }} aria-hidden />
-                {l.name}
-              </RailLink>
-            );
-          })}
-        </div>
-        {creatingList ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (newListName.trim()) addList(newListName.trim());
-              setNewListName("");
-              setCreatingList(false);
-            }}
-            className="mt-1 px-2.5"
-          >
-            <input
-              autoFocus
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              onBlur={() => setCreatingList(false)}
-              placeholder="List name"
-              aria-label="New list name"
-              className="w-full bg-transparent py-1 text-[13.5px] outline-none"
-            />
-            <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
-          </form>
+                Clear
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {open.length === 0 && done.length === 0 ? (
+          <EmptyState
+            icon={<CheckCircle2 className="size-5" aria-hidden />}
+            title={activeTags.length ? "No tasks with these tags" : "Nothing here yet"}
+            description={
+              activeTags.length
+                ? "Try removing a tag filter."
+                : "Add your first task above, or ask the assistant to plan something for you."
+            }
+          />
         ) : (
-          <button
-            type="button"
-            onClick={() => setCreatingList(true)}
-            className="mt-1 flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] text-muted-foreground transition-colors hover:bg-surface-2"
-          >
-            <Plus className="size-4" aria-hidden />
-            New list
-          </button>
-        )}
-      </div>
-
-      {/* task list */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <PageHeader title={title} subtitle={`${open.length} open · ${done.length} completed`} />
-
-        {/* list switcher — iPad & mobile */}
-        <div className="flex gap-2 overflow-x-auto border-b border-border px-3 py-2.5 lg:hidden">
-          {[
-            ...SMART_LISTS.map((l) => ({
-              id: l.id,
-              name: l.name,
-              color: "var(--color-accent-amber)",
-            })),
-            ...lists,
-          ].map((l) => (
-            <Link
-              key={l.id}
-              to="/tasks/$listId"
-              params={{ listId: l.id }}
-              className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] shadow-[var(--shadow-panel)] transition-colors",
-                listId === l.id
-                  ? "border-transparent bg-primary/12 font-medium text-primary"
-                  : "border-border text-muted-foreground",
-              )}
-            >
-              <span
-                className="size-1.5 rounded-full"
-                style={{ backgroundColor: l.color }}
-                aria-hidden
-              />
-              {l.name}
-              {countFor(l.id) > 0 ? (
-                <span className="tnum text-[12px] opacity-70">{countFor(l.id)}</span>
-              ) : null}
-            </Link>
-          ))}
-        </div>
-
-        <div className="mx-auto w-full max-w-2xl flex-1 px-3 py-4 md:px-6">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!draft.trim()) return;
-              const targetList = listId === "today" || listId === "upcoming" ? "inbox" : listId;
-              const dueDate =
-                listId === "today" ? TODAY : listId === "upcoming" ? dayOffset(1) : undefined;
-              setSelectedId(addTask(draft.trim(), targetList, dueDate));
-              setDraft("");
-            }}
-            className="panel mb-3 flex items-center gap-3 px-3 py-2.5 focus-within:border-border-strong"
-          >
-            <Plus className="size-[18px] text-muted-foreground" aria-hidden />
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Add a task"
-              aria-label="Add a task"
-              className="w-full bg-transparent text-[14.5px] outline-none placeholder:text-muted-foreground"
-            />
-          </form>
-
-          {open.length === 0 && done.length === 0 ? (
-            <EmptyState
-              icon={<CheckCircle2 className="size-5" aria-hidden />}
-              title="Nothing here yet"
-              description="Add your first task above, or ask the assistant to plan something for you."
-            />
-          ) : (
-            <>
-              {buckets ? (
-                buckets
-                  .filter((b) => b.items.length)
-                  .map((b) => (
-                    <div key={b.name} className="mt-1 first:mt-0">
-                      <SectionLabel>
-                        {b.name} · {b.items.length}
-                      </SectionLabel>
-                      <div className="panel mb-4 space-y-0.5 px-1 py-1.5">
-                        {b.items.map((t) => (
-                          <TaskRow
-                            key={t.id}
-                            task={t}
-                            selected={t.id === selectedId}
-                            onSelect={() => setSelectedId(t.id)}
-                          />
-                        ))}
-                      </div>
+          <>
+            {buckets ? (
+              buckets
+                .filter((b) => b.items.length)
+                .map((b) => (
+                  <div key={b.name} className="mt-1 first:mt-0">
+                    <SectionLabel>
+                      {b.name} · {b.items.length}
+                    </SectionLabel>
+                    <div className="panel mb-4 space-y-0.5 px-1 py-1.5">
+                      {b.items.map((t) => (
+                        <TaskRow
+                          key={t.id}
+                          task={t}
+                          selected={t.id === selectedId}
+                          onSelect={() => setSelectedId(t.id)}
+                        />
+                      ))}
                     </div>
-                  ))
-              ) : (
+                  </div>
+                ))
+            ) : (
+              <div className="panel space-y-0.5 px-1 py-1.5">
+                {open.map((t) => (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    selected={t.id === selectedId}
+                    onSelect={() => setSelectedId(t.id)}
+                  />
+                ))}
+              </div>
+            )}
+            {done.length ? (
+              <div className="mt-6 opacity-60">
+                <SectionLabel>Completed · {done.length}</SectionLabel>
                 <div className="panel space-y-0.5 px-1 py-1.5">
-                  {open.map((t) => (
+                  {done.map((t) => (
                     <TaskRow
                       key={t.id}
                       task={t}
@@ -350,41 +311,11 @@ export function TasksScreen({ listId }: { listId: string }) {
                     />
                   ))}
                 </div>
-              )}
-              {done.length ? (
-                <div className="mt-6 opacity-60">
-                  <SectionLabel>Completed · {done.length}</SectionLabel>
-                  <div className="panel space-y-0.5 px-1 py-1.5">
-                    {done.map((t) => (
-                      <TaskRow
-                        key={t.id}
-                        task={t}
-                        selected={t.id === selectedId}
-                        onSelect={() => setSelectedId(t.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
-
-      {/* list manage dialog — rename / icon / delete */}
-      <ManageEntityDialog
-        key={editingId ?? "none"}
-        target={manageOpen ? editingList : null}
-        kind="list"
-        count={editingCount}
-        onClose={() => setManageOpen(false)}
-        onSave={(id, name, icon) => updateList(id, name, icon)}
-        onDelete={(id) => {
-          setEditingId(null);
-          if (listId === id) void navigate({ to: "/tasks" });
-          deleteList(id);
-        }}
-      />
 
       {/* detail panel — desktop */}
       {selected ? (
@@ -413,48 +344,6 @@ export function TasksScreen({ listId }: { listId: string }) {
   );
 }
 
-function RailLink({
-  to,
-  id,
-  active,
-  count,
-  onManage,
-  children,
-}: {
-  to: "/tasks/$listId";
-  id: string;
-  active: boolean;
-  count: number;
-  onManage?: (() => void) | undefined;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="group relative">
-      <Link
-        to={to}
-        params={{ listId: id }}
-        className={cn(
-          "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] transition-colors",
-          active ? "bg-surface-2 font-medium" : "text-foreground/80 hover:bg-surface-2/70",
-        )}
-      >
-        {children}
-        {count > 0 ? (
-          <span className="tnum ml-auto text-[12px] text-muted-foreground group-hover:hidden">
-            {count}
-          </span>
-        ) : null}
-      </Link>
-      {onManage ? (
-        <button
-          type="button"
-          aria-label={`Edit list`}
-          onClick={onManage}
-          className="absolute right-1 top-1.5 hidden size-6 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-surface hover:text-foreground group-hover:grid"
-        >
-          <MoreHorizontal className="size-4" aria-hidden />
-        </button>
-      ) : null}
-    </div>
-  );
+function countFor(tasks: Task[], tag: string): number {
+  return tasks.filter((t) => !t.done && t.tags.includes(tag)).length;
 }

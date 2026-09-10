@@ -314,8 +314,19 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "list_tasks_today",
-      description: "List the user's open tasks due today or overdue.",
-      parameters: { type: "object", properties: {}, required: [] },
+      description:
+        "List the user's tasks. By default: open tasks due today or overdue. Optionally filter by tag (e.g. 'Show all tasks with the NStarX tag').",
+      parameters: {
+        type: "object",
+        properties: {
+          tag: {
+            type: "string",
+            description:
+              "Optional tag name (case-insensitive, partial match allowed) to filter tasks by tag.",
+          },
+        },
+        required: [],
+      },
     },
   },
   {
@@ -489,13 +500,23 @@ export async function executeTool(
   const today = new Date().toISOString().slice(0, 10);
   switch (name) {
     case "list_tasks_today": {
+      const tagArg = args["tag"] ? String(args["tag"]).trim().toLowerCase() : "";
       const rows = await db
         .select()
         .from(tasks)
         .where(and(eq(tasks.userId, uid), eq(tasks.done, false)))
         .orderBy(asc(tasks.dueDate));
-      const open = rows.filter((t) => t.dueDate && t.dueDate <= today);
-      if (open.length === 0) return { ok: true, summary: "No open tasks due today." };
+      let open = rows.filter((t) => t.dueDate && t.dueDate <= today);
+      if (tagArg) {
+        open = open.filter((t) => t.tags.some((tag) => tag.toLowerCase().includes(tagArg)));
+      }
+      if (open.length === 0)
+        return {
+          ok: true,
+          summary: tagArg
+            ? `No open tasks with a “${args["tag"]}” tag due today or overdue.`
+            : "No open tasks due today.",
+        };
       return {
         ok: true,
         summary: open

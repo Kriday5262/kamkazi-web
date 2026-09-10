@@ -7,14 +7,14 @@ export const Route = createFileRoute("/tasks/")({
       { title: "Tasks — Kamkazi" },
       {
         name: "description",
-        content: "Everything due today across your lists, with priorities, subtasks and reminders.",
+        content: "Your master task list, with tags, due dates, priorities and subtasks.",
       },
       { property: "og:title", content: "Tasks — Kamkazi" },
       {
         property: "og:description",
-        content: "Everything due today across your lists, with priorities, subtasks and reminders.",
+        content: "Your master task list, with tags, due dates, priorities and subtasks.",
       },
     ],
   }),
-  component: () => <TasksScreen listId="today" />,
+  component: () => <TasksScreen view="all" />,
 });

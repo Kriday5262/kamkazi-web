@@ -8,10 +8,12 @@ import {
   Settings2,
   Sparkles,
   StickyNote,
+  Tag,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { events } from "@/data/seed";
+import { allTags } from "@/components/tasks-screen";
 import { formatTime, relativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { plainPreview } from "@/components/markdown";
@@ -121,6 +123,25 @@ export function CommandPalette() {
 
     const match = (s: string) => !q || s.toLowerCase().includes(q);
 
+    // Tags matching the query — grouped above matching tasks so a search like
+    // "NStarX" surfaces the tag filter first.
+    const tagSuggestions = allTags(tasks).filter((t) => q && t.toLowerCase().includes(q));
+    const tagItems = (tags: string[]): Item[] =>
+      tags.slice(0, 4).map((tag) => ({
+        id: `tag-${tag}`,
+        label: `#${tag}`,
+        hint: `${tasks.filter((t) => t.tags.includes(tag)).length} tasks`,
+        group: "Tags",
+        icon: Tag,
+        run: () => {
+          void navigate({
+            to: "/tasks/$listId",
+            params: { listId: encodeURIComponent(tag) },
+          });
+          close();
+        },
+      }));
+
     const taskItems: Item[] = tasks
       .filter((t) => match(t.title))
       .slice(0, 5)
@@ -131,7 +152,7 @@ export function CommandPalette() {
         group: "Tasks",
         icon: CheckCircle2,
         run: () => {
-          void navigate({ to: "/tasks/$listId", params: { listId: t.listId } });
+          void navigate({ to: "/tasks" });
           close();
         },
       }));
@@ -183,6 +204,7 @@ export function CommandPalette() {
 
     return q
       ? [
+          ...tagItems(tagSuggestions),
           ...taskItems,
           ...noteItems,
           ...eventItems,

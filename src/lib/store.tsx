@@ -112,6 +112,8 @@ interface Store {
   updateTask: (id: string, patch: Partial<Task>) => void;
   addTask: (title: string, listId?: string, dueDate?: string, extra?: Partial<Task>) => string;
   deleteTask: (id: string) => void;
+  addTaskAttachment: (taskId: string, file: File) => void;
+  removeTaskAttachment: (taskId: string, attachmentId: string) => void;
   addList: (name: string) => void;
   updateList: (id: string, name: string, icon: string) => void;
   deleteList: (id: string) => void;
@@ -259,12 +261,12 @@ export function StoreProvider({
   }, []);
 
   const addTask = useCallback(
-    (title: string, listId = "inbox", dueDate?: string, extra?: Partial<Task>) => {
+    (title: string, _listId = "inbox", dueDate?: string, extra?: Partial<Task>) => {
       const id = uid();
       const task: Task = {
         id,
         title,
-        listId,
+        listId: "inbox",
         done: false,
         dueDate,
         priority: "none",
@@ -294,6 +296,61 @@ export function StoreProvider({
       if (snapshot) setTasks((prev) => [snapshot as Task, ...prev]);
     });
   }, []);
+
+  /** Upload a real file for a task and merge the metadata into tasks.attachments. */
+  const addTaskAttachment = useCallback(
+    (taskId: string, file: File) => {
+      const form = new FormData();
+      form.set("file", file);
+      form.set("taskId", taskId);
+      void (async () => {
+        try {
+          const res = await fetch("/api/attachments", { method: "POST", body: form });
+          if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+          const { attachment } = (await res.json()) as {
+            attachment: Task["attachments"][number];
+          };
+          // Merge into the task's attachments via updateTask (single write path).
+          let snapshot: Task | undefined;
+          setTasks((prev) => {
+            snapshot = prev.find((t) => t.id === taskId);
+            return prev;
+          });
+          if (snapshot) updateTask(taskId, { attachments: [...snapshot.attachments, attachment] });
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Upload failed");
+        }
+      })();
+    },
+    [updateTask],
+  );
+
+  /** Remove an attachment (server file + metadata). */
+  const removeTaskAttachment = useCallback(
+    (taskId: string, attachmentId: string) => {
+      let snapshot: Task | undefined;
+      let removed: Task["attachments"][number] | undefined;
+      setTasks((prev) => {
+        const t = prev.find((x) => x.id === taskId);
+        if (!t) return prev;
+        snapshot = t;
+        removed = t.attachments.find((a) => a.id === attachmentId);
+        return prev;
+      });
+      if (!snapshot) return;
+      updateTask(taskId, {
+        attachments: snapshot.attachments.filter((a) => a.id !== attachmentId),
+      });
+      if (removed?.path) {
+        void fetch("/api/attachments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "delete", path: removed.path }),
+        }).catch(() => undefined);
+      }
+    },
+    [updateTask],
+  );
 
   const addList = useCallback((name: string) => {
     const list: TaskList = { id: uid(), name, icon: "list", color: "oklch(0.6 0.1 300)" };
@@ -647,6 +704,8 @@ export function StoreProvider({
       updateTask,
       addTask,
       deleteTask,
+      addTaskAttachment,
+      removeTaskAttachment,
       addList,
       updateList,
       deleteList,

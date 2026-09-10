@@ -311,7 +311,7 @@ export function TodayScreen() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!quickTask.trim()) return;
-                addTask(quickTask.trim(), settings.defaultListId, TODAY);
+                addTask(quickTask.trim(), undefined, TODAY);
                 setQuickTask("");
                 captureRef.current?.focus();
               }}
