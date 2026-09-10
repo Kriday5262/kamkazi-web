@@ -1,0 +1,78 @@
+# Kamkazi production stack: app + PostgreSQL + Caddy (HTTPS).
+#
+# Postgres reuses the Stage-1 data volume (external kamkazi_kamkazi_pgdata),
+# so the dev and prod databases are the same data. IMPORTANT: stop the dev
+# compose db first so only one postgres writes to the volume:
+#   docker compose -f docker-compose.dev.yml stop db
+#
+# Postgres is NOT exposed publicly - only on the compose network, plus a
+# loopback-only mapping (127.0.0.1:5434) for migrations/seed from the host.
+#
+# TLS: Caddy serves HTTPS with an internal (self-signed) certificate on :8443.
+# The app sets Secure session cookies in production, so HTTPS is required.
+name: kamkazi-prod
+
+services:
+  app:
+    build: .
+    image: kamkazi-app
+    container_name: kamkazi-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NITRO_PORT: "8086"
+      NITRO_HOST: 0.0.0.0
+      DATABASE_URL: postgres://kamkazi:kamkazi@db:5432/kamkazi
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      KAMKAZI_USERNAME: ${KAMKAZI_USERNAME:-Shantanu}
+      KAMKAZI_PASSWORD: ${KAMKAZI_PASSWORD:-SmartHome@2012}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      WEBPUSH_SUBJECT: ${WEBPUSH_SUBJECT:-mailto:noreply@kamkazi.com}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    container_name: kamkazi-pg-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kamkazi
+      POSTGRES_USER: kamkazi
+      POSTGRES_PASSWORD: kamkazi
+    volumes:
+      - kamkazi_pgdata:/var/lib/postgresql/data
+    # Loopback-only mapping for running migrations/seed/backups from the host.
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kamkazi -d kamkazi"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: kamkazi-caddy
+    restart: unless-stopped
+    ports:
+      - "8443:443"
+      - "8088:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - kamkazi_caddy_data:/data
+      - kamkazi_caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  kamkazi_pgdata:
+    external: true
+    name: kamkazi_kamkazi_pgdata
+  kamkazi_caddy_data:
+  kamkazi_caddy_config:

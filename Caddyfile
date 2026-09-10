@@ -1,0 +1,9 @@
+{
+	debug
+	default_sni localhost
+}
+
+https://localhost, https://app.kamkazi.com, https://192.168.29.188:443 {
+	tls internal
+	reverse_proxy app:8086
+}
