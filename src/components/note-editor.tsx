@@ -80,7 +80,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-20 flex items-center gap-1.5 border-b border-border bg-background/85 px-3 py-2.5 backdrop-blur md:px-6">
+      <header className="sticky top-0 z-20 flex items-center gap-1.5 border-b border-border bg-background/85 px-3 py-2.5 pt-[calc(env(safe-area-inset-top)+10px)] backdrop-blur md:px-6">
         <Link
           to="/notes"
           aria-label="Back to notes"
