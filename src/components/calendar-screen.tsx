@@ -365,7 +365,7 @@ export function CalendarScreen() {
   return (
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-[1100px] px-4 py-7 md:px-8 md:py-10">
+        <div className="mx-auto w-full max-w-[1100px] px-4 py-7 pt-[calc(env(safe-area-inset-top)+28px)] md:px-8 md:py-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h1 className="truncate text-[24px] font-extrabold leading-tight tracking-tight md:text-[30px]">

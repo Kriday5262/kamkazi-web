@@ -194,7 +194,7 @@ export function TodayScreen() {
   return (
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-[760px] px-4 py-7 md:px-8 md:py-10">
+        <div className="mx-auto w-full max-w-[760px] px-4 py-7 pt-[calc(env(safe-area-inset-top)+28px)] md:px-8 md:py-10">
           {/* header */}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
