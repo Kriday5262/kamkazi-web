@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CalendarDays,
   CalendarRange,
@@ -14,6 +14,7 @@ import {
   Settings2,
   Sparkles,
   Sun,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -208,45 +209,265 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0">
+      <main className="flex min-w-0 flex-1 flex-col pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-0">
         {children}
       </main>
 
-      {/* iPhone bottom tab bar */}
+      {/* iPhone bottom tab bar: 4 tabs split around a raised centre Today button */}
+      <MobileBottomNav pathname={pathname} />
+    </div>
+  );
+}
+
+/* ---------- Mobile bottom navigation (iPhone) ---------- */
+
+/** The four thumb-reachable tabs, split around the centre Today button. */
+const LEFT_TABS = [
+  { to: "/calendar", label: "Agenda", icon: CalendarRange },
+  { to: "/notes", label: "Notes", icon: NotebookPen },
+] as const;
+
+const RIGHT_TABS = [
+  { to: "/email", label: "Email", icon: Mail },
+  { to: "/chat", label: "AI Chat", icon: Sparkles },
+] as const;
+
+/**
+ * "More" drawer entries. Add future destinations here — the drawer renders
+ * whatever this list contains (Search/Settings are actions, others navigate).
+ */
+type MoreEntry =
+  | { label: string; icon: LucideIcon; kind: "action"; action: "search" }
+  | { label: string; icon: LucideIcon; kind: "link"; to: string };
+
+const MORE_ITEMS: MoreEntry[] = [
+  { label: "Search", icon: Search, kind: "action", action: "search" },
+  { label: "Files", icon: HardDrive, kind: "link", to: "/files" },
+  { label: "Settings", icon: Settings2, kind: "link", to: "/settings" },
+];
+
+function MobileTab({
+  to,
+  label,
+  icon: Icon,
+  pathname,
+}: {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  pathname: string;
+}) {
+  const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+  return (
+    <Link
+      to={to}
+      preload="intent"
+      aria-current={active ? "page" : undefined}
+      className="tap flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5"
+    >
+      <Icon
+        className={cn(
+          "size-[22px]",
+          active ? "text-primary" : "text-muted-foreground",
+        )}
+        strokeWidth={active ? 2.4 : 1.9}
+        aria-hidden
+      />
+      <span
+        className={cn(
+          "text-[10px] font-bold tracking-tight",
+          active ? "text-primary" : "text-muted-foreground",
+        )}
+      >
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+function MobileBottomNav({ pathname }: { pathname: string }) {
+  const { setPaletteOpen } = useStore();
+  const navigate = useNavigate();
+  const swipe = useRef<{ y: number; fired: boolean }>({ y: 0, fired: false });
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [drag, setDrag] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const openMore = () => {
+    setDragging(false);
+    setDrag(0);
+    setMoreOpen(true);
+  };
+  const progress = Math.min(drag / 40, 1);
+  const stopHold = () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+  };
+
+  return (
+    <div className="md:hidden">
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between border-t border-border bg-card/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-xl"
       >
-        {NAV.map(({ to, label, icon: Icon, bg, tint }) => (
-          <Link
-            key={to}
-            to={to}
-            aria-current={isActive(to) ? "page" : undefined}
-            className="tap flex flex-1 flex-col items-center gap-1 py-1"
+        {LEFT_TABS.map((t) => (
+          <MobileTab key={t.to} {...t} pathname={pathname} />
+        ))}
+
+        <div className="relative flex flex-col items-center">
+          {/* Swipe hint: grabber widens/lifts + "More" tooltip fades in with drag progress */}
+          <span
+            aria-hidden
+            className="absolute -top-8 h-1 rounded-full bg-border"
+            style={{
+              width: `${24 + progress * 14}px`,
+              opacity: 0.5 + progress * 0.5,
+              transform: `translateY(${-progress * 6}px)`,
+              transition: dragging ? "none" : "all 0.3s cubic-bezier(0.22,1,0.36,1)",
+              backgroundColor: progress > 0.6 ? "var(--primary)" : undefined,
+            }}
+          />
+          <span
+            aria-hidden
+            className="absolute -top-[3.6rem] rounded-full bg-foreground px-2.5 py-1 text-[10px] font-bold text-background"
+            style={{
+              opacity: progress,
+              transform: `translateY(${(1 - progress) * 10}px) scale(${0.85 + progress * 0.15})`,
+              transition: dragging ? "none" : "all 0.25s cubic-bezier(0.22,1,0.36,1)",
+              pointerEvents: "none",
+            }}
           >
-            <span
-              className={cn(
-                "grid h-7 w-12 place-items-center rounded-full transition-colors",
-                isActive(to) ? bg : "bg-transparent",
-              )}
-            >
-              <Icon
-                className={cn("size-[19px]", isActive(to) ? tint : "text-muted-foreground")}
-                strokeWidth={isActive(to) ? 2.4 : 1.9}
-                aria-hidden
-              />
-            </span>
-            <span
-              className={cn(
-                "text-[10px] font-bold tracking-tight",
-                isActive(to) ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {label}
-            </span>
-          </Link>
+            More
+          </span>
+          <button
+            type="button"
+            aria-label="Today — swipe up for more"
+            onClick={() => {
+              if (swipe.current.fired) return;
+              void navigate({ to: "/" });
+            }}
+            onTouchStart={(e) => {
+              swipe.current = { y: e.touches[0]?.clientY ?? 0, fired: false };
+              setDragging(true);
+              holdTimer.current = setTimeout(openMore, 500);
+            }}
+            onTouchMove={(e) => {
+              if (swipe.current.fired) return;
+              const delta = swipe.current.y - (e.touches[0]?.clientY ?? 0);
+              setDrag(Math.max(0, Math.min(delta, 56)));
+              if (delta > 40) {
+                swipe.current.fired = true;
+                stopHold();
+                openMore();
+              }
+            }}
+            onTouchEnd={() => {
+              stopHold();
+              setDragging(false);
+              setDrag(0);
+            }}
+            className="tap -mt-9 flex h-16 w-16 items-center justify-center rounded-[20px] border-4 border-background gradient-primary text-primary-foreground shadow-[var(--shadow-3d)]"
+            style={{
+              transform: `translateY(${-drag * 0.45}px) scale(${1 + progress * 0.08})`,
+              transition: dragging
+                ? "none"
+                : "transform 0.35s cubic-bezier(0.34,1.4,0.64,1)",
+            }}
+          >
+            <CalendarDays
+              className="size-8"
+              strokeWidth={2.4}
+              style={{
+                transform: `scale(${1 + progress * 0.1})`,
+                transition: dragging
+                  ? "none"
+                  : "transform 0.3s cubic-bezier(0.22,1,0.36,1)",
+              }}
+              aria-hidden
+            />
+          </button>
+        </div>
+
+        {RIGHT_TABS.map((t) => (
+          <MobileTab key={t.to} {...t} pathname={pathname} />
         ))}
       </nav>
+
+      {moreOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm"
+            onClick={() => setMoreOpen(false)}
+          />
+          <div
+            className="animate-fade-up fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-[32px] border-t border-border bg-card p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[var(--shadow-panel)]"
+            onTouchStart={(e) => {
+              const startY = e.touches[0]?.clientY ?? 0;
+              const onEnd = (ev: TouchEvent) => {
+                if ((ev.changedTouches[0]?.clientY ?? 0) - startY > 70) setMoreOpen(false);
+                window.removeEventListener("touchend", onEnd);
+              };
+              window.addEventListener("touchend", onEnd);
+            }}
+          >
+            <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-border" />
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold">More</h2>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                aria-label="Close menu"
+                className="tap grid size-8 place-items-center rounded-full hover:bg-muted"
+              >
+                <X className="size-[18px]" aria-hidden />
+              </button>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {MORE_ITEMS.map((item) => {
+                const active =
+                  item.kind === "link" && pathname.startsWith(item.to);
+                const inner = (
+                  <>
+                    <item.icon className="size-[18px]" strokeWidth={2} aria-hidden />
+                    {item.label}
+                  </>
+                );
+                const cls = cn(
+                  "tap flex min-h-[48px] items-center gap-3 rounded-2xl border p-3.5 text-sm font-semibold",
+                  active
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-border text-foreground",
+                );
+                if (item.kind === "link") {
+                  return (
+                    <Link
+                      key={item.label}
+                      to={item.to}
+                      onClick={() => setMoreOpen(false)}
+                      className={cls}
+                    >
+                      {inner}
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      if (item.action === "search") setPaletteOpen(true);
+                    }}
+                    className={cn(cls, "text-left")}
+                  >
+                    {inner}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -264,7 +485,7 @@ export function PageHeader({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:px-7">
+    <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/85 px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur md:px-7 md:pt-3">
       <BrandMark className="md:hidden" />
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-[19px] font-extrabold tracking-tight">{title}</h1>

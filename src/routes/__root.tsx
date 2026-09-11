@@ -117,9 +117,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Kamkazi" },
       { name: "theme-color", content: "#f4f3ef" },
+      { name: "theme-color", content: "#1a1915", media: "(prefers-color-scheme: dark)" },
     ],
     links: [
       {
