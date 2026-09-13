@@ -181,14 +181,41 @@ export function FilesScreen() {
 
   const doUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    for (const file of Array.from(files)) {
-      const form = new FormData();
-      form.append("dir", dir);
-      form.append("file", file);
-      const res = await fetch("/api/files", { method: "POST", body: form });
-      if (!res.ok) toast.error(`Upload failed: ${file.name}`);
+    // Snapshot BEFORE the input is reset (clearing e.target.value can detach
+    // the FileList mid-loop on mobile Safari → bogus "0 files uploaded").
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    setBusy(true);
+    const total = list.length;
+    // One persistent toast, updated live per file.
+    const tid = toast.loading(`Uploading 1/${total}…`);
+    let ok = 0;
+    const failed: string[] = [];
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i]!;
+      toast.loading(`Uploading “${file.name}” (${i + 1}/${total})…`, { id: tid });
+      try {
+        const form = new FormData();
+        form.append("dir", dir);
+        form.append("file", file);
+        const res = await fetch("/api/files", { method: "POST", body: form });
+        if (res.ok) ok += 1;
+        else failed.push(file.name);
+      } catch {
+        failed.push(file.name);
+      }
     }
-    toast.success(`${files.length} file${files.length === 1 ? "" : "s"} uploaded`);
+    setBusy(false);
+    if (failed.length === 0) {
+      toast.success(`${ok} file${ok === 1 ? "" : "s"} uploaded`, { id: tid });
+    } else {
+      toast.error(
+        `${ok} of ${total} uploaded — failed: ${failed.slice(0, 3).join(", ")}${
+          failed.length > 3 ? ` +${failed.length - 3} more` : ""
+        }`,
+        { id: tid, duration: 6000 },
+      );
+    }
     void load(dir);
   };
 
