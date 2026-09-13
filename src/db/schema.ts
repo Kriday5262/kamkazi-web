@@ -82,6 +82,10 @@ export const tasks = pgTable(
       >()
       .notNull()
       .default([]),
+    /** Optional deep-link metadata (e.g. source email). */
+    meta: jsonb("meta")
+      .$type<{ email?: { accountId: string; id: string; subject: string; from: string; date: string } } | undefined>()
+      .default(undefined),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     createdAtTs: timestamp("created_at_ts", { withTimezone: true }).notNull().defaultNow(),

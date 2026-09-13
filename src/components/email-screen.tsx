@@ -113,6 +113,20 @@ export function EmailScreen() {
     }
   }, [q.data]);
 
+  // Deep link: /email?msg=<accountId>|<gmailId> opens that email in the detail
+  // pane once its page has loaded (used by task→email backlinks).
+  const openMsgKey = new URLSearchParams(window.location.search).get("msg") ?? undefined;
+  useEffect(() => {
+    if (!openMsgKey || pages.length === 0) return;
+    const [accId, msgId] = openMsgKey.split("|");
+    if (!accId || !msgId) return;
+    const found = pages.find((e) => e.accountId === accId && e.id === msgId);
+    if (found) {
+      setSelected(found);
+      setDetailOpen(true);
+    }
+  }, [openMsgKey, pages]);
+
   // Global refresh (header button) — re-fetch the inbox list live.
   useEffect(() => {
     const onReload = () => void q.refetch();
@@ -207,6 +221,15 @@ export function EmailScreen() {
       const taskId = addTask(`Email: ${email.subject || "(no subject)"}`, undefined, undefined, {
         notes: description,
         tags: ["Gmail"],
+        meta: {
+          email: {
+            accountId: email.accountId,
+            id: email.id,
+            subject: email.subject || "(no subject)",
+            from: email.from,
+            date: email.date,
+          },
+        },
       });
       setAddedTasks((prev) => ({ ...prev, [key]: { taskId } }));
     },

@@ -1,5 +1,5 @@
 import { CheckCircle2, CheckSquare, Plus, Square, Tag, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { TODAY, dayOffset, type Task } from "@/data/seed";
 import { relativeDate, isOverdue, formatTime } from "@/lib/format";
@@ -152,6 +152,15 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
   const [confirmBulk, setConfirmBulk] = useState(false);
   // Active tag filters (OR-union). Seed from URL when provided.
   const [activeTags, setActiveTags] = useState<string[]>(tagFilter ? [tagFilter] : []);
+
+  // Deep link: /tasks?open=<taskId> opens that task's detail on arrival
+  // (used by the email→task backlink).
+  useEffect(() => {
+    const openId = new URLSearchParams(window.location.search).get("open");
+    if (openId && tasks.some((t) => t.id === openId)) setSelectedId(openId);
+    // Run once when tasks first load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks.length > 0]);
 
   const tags = useMemo(() => allTags(tasks), [tasks]);
 

@@ -3,6 +3,7 @@ import {
   CalendarDays,
   Bell,
   Flag,
+  Mail,
   Repeat,
   Tag,
   Trash2,
@@ -27,6 +28,11 @@ const PRIORITY_LABEL: Record<Task["priority"], string> = {
   medium: "Medium",
   high: "High",
 };
+
+function senderLabel(from: string): string {
+  const m = /^"?([^"<]+)"?\s*<[^>]+>$/.exec(from.trim());
+  return (m?.[1] ?? from).trim();
+}
 
 export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void }) {
   const [preview, setPreview] = useState<{ name: string; url: string; isPdf: boolean } | null>(null);
@@ -99,6 +105,20 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
             )}
           />
         </div>
+
+        {/* Deep link back to the source email, when this task came from one. */}
+        {task.meta?.email ? (
+          <a
+            href={`/email?msg=${encodeURIComponent(`${task.meta.email.accountId}|${task.meta.email.id}`)}`}
+            className="tap mt-3 flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/20"
+          >
+            <Mail className="size-3.5" aria-hidden />
+            See related email
+            <span className="truncate font-normal text-muted-foreground">
+              — {senderLabel(task.meta.email.from)}
+            </span>
+          </a>
+        ) : null}
 
         {/* Description: plain textarea, thin border-bottom, no box background */}
         <textarea

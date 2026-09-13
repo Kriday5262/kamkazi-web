@@ -32,6 +32,8 @@ export interface Task {
     type?: string | undefined;
     path?: string | undefined;
   }[];
+  /** Deep-link back to the source email, when the task was created from one. */
+  meta?: { email?: { accountId: string; id: string; subject: string; from: string; date: string } } | undefined;
   createdAt: string;
   updatedAt: string;
 }

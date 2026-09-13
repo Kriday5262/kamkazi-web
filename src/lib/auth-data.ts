@@ -166,6 +166,7 @@ function mapTask(t: typeof tasks.$inferSelect): Task {
     tags: t.tags,
     subtasks: t.subtasks,
     attachments: t.attachments,
+    meta: (t.meta as Task["meta"]) ?? undefined,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   };
@@ -219,6 +220,7 @@ export const saveTask = createServerFn({ method: "POST" })
         tags: t.tags,
         subtasks: t.subtasks,
         attachments: t.attachments,
+        meta: t.meta ?? null,
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
         updatedAtTs: new Date(),

@@ -10,10 +10,11 @@
  * the email as read) and rendered as sanitized HTML or plain text.
  * Attachments are listed with download-only links (read-only).
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Paperclip } from "lucide-react";
+import { ListTodo, Paperclip } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useStore } from "@/lib/store";
 import {
   Sheet,
   SheetContent,
@@ -92,6 +93,17 @@ export function EmailDetail({
   mobileOnly?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const { tasks } = useStore();
+
+  // Existing tasks created from this email (deep-link back to Tasks).
+  const relatedTasks = useMemo(() => {
+    if (!email) return [];
+    return tasks.filter(
+      (t) =>
+        t.meta?.email?.id === email.id &&
+        t.meta?.email?.accountId === (email.accountId ?? accountId ?? ""),
+    );
+  }, [tasks, email, accountId]);
 
   const bodyQuery = useQuery({
     queryKey: ["email-read", accountId, email?.id],
@@ -133,6 +145,16 @@ export function EmailDetail({
           </span>
         </div>
       </div>
+
+      {relatedTasks.length > 0 ? (
+        <a
+          href={`/tasks?open=${encodeURIComponent(relatedTasks[0]!.id)}`}
+          className="tap mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/20"
+        >
+          <ListTodo className="size-3.5" aria-hidden />
+          {relatedTasks.length === 1 ? "See related Task" : `See related Tasks (${relatedTasks.length})`}
+        </a>
+      ) : null}
 
       <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
         {bodyQuery.isPending ? (
