@@ -171,6 +171,16 @@ function mapTask(t: typeof tasks.$inferSelect): Task {
   };
 }
 
+function isoDateTimeOf(d: Date): string {
+  // Full ISO datetime (IST canonical day, kept sortable lexicographically).
+  const ist = new Date(d.getTime() + 330 * 60_000);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, "0")}-${String(
+    ist.getUTCDate(),
+  ).padStart(2, "0")}T${String(ist.getUTCHours()).padStart(2, "0")}:${String(
+    ist.getUTCMinutes(),
+  ).padStart(2, "0")}:${String(ist.getUTCSeconds()).padStart(2, "0")}`;
+}
+
 function mapNote(n: typeof notes.$inferSelect): Note {
   return {
     id: n.id,
@@ -180,7 +190,7 @@ function mapNote(n: typeof notes.$inferSelect): Note {
     tags: n.tags,
     pinned: n.pinned,
     updatedAt: isoDateOf(n.updatedAtTs),
-    createdAt: isoDateOf(n.createdAtTs),
+    createdAt: isoDateTimeOf(n.createdAtTs),
   };
 }
 // ---------------------------------------------------------------------------

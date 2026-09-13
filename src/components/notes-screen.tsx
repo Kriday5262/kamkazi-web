@@ -2,8 +2,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { MoreHorizontal, NotebookPen, Pin, Plus, Search, StickyNote } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
+import type { Note } from "@/data/seed";
 import { plainPreview } from "@/components/markdown";
-import { relativeStamp } from "@/lib/format";
+import { relativeDate, relativeStamp } from "@/lib/format";
 import { EmptyState, SectionLabel } from "@/components/primitives";
 import { PageHeader } from "@/components/app-shell";
 import { ManageEntityDialog } from "@/components/manage-entity-dialog";
@@ -236,8 +237,15 @@ export function NotesScreen({ activeNoteId }: { activeNoteId?: string | undefine
                   </div>
                 </div>
               ) : null}
-              {rest.map((n) => (
-                <NoteRow key={n.id} id={n.id} active={n.id === activeNoteId} />
+              {groupNotesByDay(rest).map(([label, group]) => (
+                <div key={label} className="pb-1">
+                  <SectionLabel className="pt-1.5">{label}</SectionLabel>
+                  <div className="divide-y divide-border">
+                    {group.map((n) => (
+                      <NoteRow key={n.id} id={n.id} active={n.id === activeNoteId} />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -297,4 +305,20 @@ function NoteRow({ id, active }: { id: string; active: boolean }) {
       ) : null}
     </Link>
   );
+}
+
+/** Group notes by their creation day (IST) into labeled sections — newest first.
+ *  Works with both full datetime stamps (YYYY-MM-DDTHH:MM:SS) and plain dates. */
+function groupNotesByDay(notes: Note[]): [string, Note[]][] {
+  const groups = new Map<string, Note[]>();
+  for (const n of notes) {
+    const day = (n.createdAt ?? "").slice(0, 10) || "Undated";
+    const arr = groups.get(day);
+    if (arr) arr.push(n);
+    else groups.set(day, [n]);
+  }
+  return [...groups.entries()].map(([day, group]) => [
+    day === "Undated" ? day : relativeDate(day),
+    group,
+  ]);
 }

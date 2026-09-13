@@ -489,6 +489,7 @@ export function StoreProvider({
       notebookId,
       tags: [],
       pinned: false,
+      createdAt: new Date().toISOString(),
       updatedAt: TODAY,
     };
     setNotes((prev) => [note, ...prev]);
