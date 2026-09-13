@@ -31,16 +31,17 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   const note = notes.find((n) => n.id === noteId);
   // Blank-note cleanup: if this note was brand-new and still has no title and
   // no body when the user navigates back to /notes, remove it instead of
-  // leaving an empty "Untitled note" behind.
-  const blankRef = useRef(false);
+  // leaving an empty "Untitled note" behind. The cleanup must run ONLY when
+  // the noteId changes or the editor unmounts — never on every keystroke
+  // (re-running on note object changes would delete the note mid-typing).
+  const latestNoteRef = useRef(note);
+  latestNoteRef.current = note;
   useEffect(() => {
-    blankRef.current = Boolean(note && !note.title.trim() && !note.body.trim());
     return () => {
-      if (blankRef.current && noteRefId.current) deleteNote(noteRefId.current);
+      const n = latestNoteRef.current;
+      if (n && !n.title.trim() && !n.body.trim()) deleteNote(n.id);
     };
-  }, [note, deleteNote]);
-  const noteRefId = useRef(noteId);
-  noteRefId.current = noteId;
+  }, [noteId, deleteNote]);
 
   if (!note) {
     return (
