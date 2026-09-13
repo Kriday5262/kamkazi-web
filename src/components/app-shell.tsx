@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Mail,
+  RotateCw,
   Search,
   Settings2,
   Sparkles,
@@ -481,9 +482,27 @@ export function PageHeader({
   subtitle?: ReactNode;
   actions?: ReactNode;
 }) {
-  const { setPaletteOpen, theme, toggleTheme } = useStore();
+  const { setPaletteOpen, theme, toggleTheme, reloadAll } = useStore();
   const [mounted, setMounted] = useState(false);
+  const [globalSyncing, setGlobalSyncing] = useState(false);
   useEffect(() => setMounted(true), []);
+  const onGlobalRefresh = async () => {
+    setGlobalSyncing(true);
+    // (a) refresh connected calendars + (b) reload all app data — no page reload
+    try {
+      await fetch("/api/calendar", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "refresh" }),
+      });
+    } catch {
+      // calendar refresh is best-effort
+    }
+    await reloadAll();
+    // let screens re-fetch their own live data (emails, weather) via the event
+    window.dispatchEvent(new CustomEvent("kamkazi:reload-data"));
+    setGlobalSyncing(false);
+  };
   return (
     <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/85 px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur md:px-7 md:pt-3">
       <BrandMark className="md:hidden" />
@@ -495,6 +514,14 @@ export function PageHeader({
       </div>
 
       {actions}
+      <button
+        type="button"
+        onClick={onGlobalRefresh}
+        aria-label="Refresh everything (calendar, mail, tasks, notes)"
+        className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+      >
+        <RotateCw className={cn("size-[18px]", globalSyncing && "animate-spin")} aria-hidden />
+      </button>
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}

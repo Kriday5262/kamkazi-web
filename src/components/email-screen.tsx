@@ -113,6 +113,13 @@ export function EmailScreen() {
     }
   }, [q.data]);
 
+  // Global refresh (header button) — re-fetch the inbox list live.
+  useEffect(() => {
+    const onReload = () => void q.refetch();
+    window.addEventListener("kamkazi:reload-data", onReload);
+    return () => window.removeEventListener("kamkazi:reload-data", onReload);
+  }, [q]);
+
   const loadMore = useCallback(async () => {
     if (!nextToken || loadingMore) return;
     setLoadingMore(true);

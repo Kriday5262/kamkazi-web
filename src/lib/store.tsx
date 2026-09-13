@@ -138,6 +138,8 @@ interface Store {
   renameConversation: (id: string, title: string) => void;
   deleteConversation: (id: string) => void;
   togglePinConversation: (id: string) => void;
+  /** Pull tasks/notes/events/settings from the server into the live store (no page reload). */
+  reloadAll: () => Promise<boolean>;
 }
 
 // Keep a single context instance across hot reloads so the provider and
@@ -738,6 +740,51 @@ export function StoreProvider({
     });
   }, []);
 
+  /** Global reload — pull everything from the server and apply to the live
+   *  store, no page refresh needed. Used by the header refresh button and
+   *  the auto-reload on app foreground (Add-to-Home-Screen). */
+  const reloadAll = useCallback(async (): Promise<boolean> => {
+    try {
+      const data = (await loadAll()) as {
+        tasks: Task[];
+        lists: TaskList[];
+        notes: Note[];
+        notebooks: { id: string; name: string; icon: string }[];
+        datedEvents: Record<string, typeof fallbackEvents>;
+        conversations: Conversation[];
+        settings: Partial<Settings>;
+      } | null;
+      if (!data) return false;
+      setTasks(data.tasks ?? []);
+      setLists(data.lists ?? []);
+      setNotes((prev) => mergeLoaded(prev, data.notes ?? []));
+      setNotebooks(data.notebooks ?? []);
+      setEvents(data.datedEvents ?? {});
+      setSettings((prev) => ({ ...prev, ...(data.settings ?? {}) }));
+      setConversations(data.conversations ?? []);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Auto-reload when the app becomes visible again — covers the PWA /
+  // Add-to-Home-Screen case where there is no refresh button: closing and
+  // reopening the app (or switching back to the tab) now shows fresh data.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void reloadAll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+    };
+  }, [reloadAll]);
+
   const value = useMemo<Store>(
     () => ({
       tasks,
@@ -779,6 +826,7 @@ export function StoreProvider({
       renameConversation,
       deleteConversation,
       togglePinConversation,
+      reloadAll,
     }),
     [
       tasks,
@@ -832,6 +880,15 @@ export function useRefreshStore() {
     return data;
   }, []);
   return refresh;
+}
+
+/** Merge server-loaded data into local state. Server is source of truth
+ *  EXCEPT for brand-new local items the server doesn't know about yet
+ *  (their optimistic writes are still in flight or just failed silently) —
+ *  those are preserved so a background reload never makes content vanish. */
+function mergeLoaded<T extends { id: string }>(current: T[], loaded: T[]): T[] {
+  const known = new Set(loaded.map((n) => n.id));
+  return [...loaded, ...current.filter((n) => !known.has(n.id))];
 }
 
 /** Scripted assistant responses for the prototype. */
