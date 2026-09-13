@@ -143,7 +143,7 @@ export function TaskRow({
 export const SMART_TASK_VIEWS = ["today", "upcoming"] as const;
 
 export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFilter?: string | undefined }) {
-  const { tasks, addTask, deleteTask } = useStore();
+  const { tasks, addTask, deleteTask, chatDocked } = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   // Multi-select for bulk delete. Entering selection mode replaces tap-to-open.
@@ -436,8 +436,8 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
         onConfirm={bulkDelete}
       />
 
-      {/* detail panel — desktop */}
-      {selected ? (
+      {/* detail panel — desktop (popup sheet when AI chat is docked) */}
+      {selected && !chatDocked ? (
         <div className="hidden w-[350px] shrink-0 border-l border-border xl:block">
           <div className="sticky top-0 h-screen">
             <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
@@ -445,9 +445,9 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
         </div>
       ) : null}
 
-      {/* detail sheet — mobile & iPad */}
+      {/* detail sheet — mobile & iPad (always, when chat is docked also desktop) */}
       {selected ? (
-        <div className="fixed inset-0 z-40 xl:hidden">
+        <div className={chatDocked ? "fixed inset-0 z-40" : "fixed inset-0 z-40 xl:hidden"}>
           <button
             type="button"
             aria-label="Close task details"

@@ -103,6 +103,9 @@ interface Store {
   settings: Settings;
   paletteOpen: boolean;
   sidebarCollapsed: boolean;
+  /** AI Chat pinned in the right sidebar (desktop); detail panes become popups. */
+  chatDocked: boolean;
+  setChatDocked: (v: boolean) => void;
   toggleSidebar: () => void;
   setPaletteOpen: (v: boolean) => void;
   toggleTheme: () => void;
@@ -192,6 +195,8 @@ export function StoreProvider({
   }, [conversations]);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  /** AI Chat pinned in the right sidebar (desktop). When on, detail panes render as popups. */
+  const [chatDocked, setChatDocked] = useState(false);
   const [settings, setSettings] = useState<Settings>({
     ...DEFAULT_SETTINGS,
     ...(initial?.settings ?? {}),
@@ -797,6 +802,8 @@ export function StoreProvider({
       settings,
       paletteOpen,
       sidebarCollapsed,
+      chatDocked,
+      setChatDocked,
       toggleSidebar: () => setSidebarCollapsed((v) => !v),
       setPaletteOpen,
       toggleTheme: () =>

@@ -225,7 +225,7 @@ function renderBlocks(src: string): ReactNode[] {
 }
 
 function inline(text: string): ReactNode {
-  const tokens = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
+  const tokens = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s)<>"']+)/g);
   return tokens.map((tok, i) => {
     if (/^\*\*[^*]+\*\*$/.test(tok))
       return (
@@ -243,8 +243,15 @@ function inline(text: string): ReactNode {
     const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(tok);
     if (link)
       return (
-        <a key={i} href={link[2]} className="text-primary underline underline-offset-2">
+        <a key={i} href={link[2]} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
           {link[1]}
+        </a>
+      );
+    // Bare URLs become clickable links (Todoist-style autolink).
+    if (/^https?:\/\//.test(tok))
+      return (
+        <a key={i} href={tok} target="_blank" rel="noreferrer" className="break-all text-primary underline underline-offset-2">
+          {tok}
         </a>
       );
     return <Fragment key={i}>{tok}</Fragment>;

@@ -18,6 +18,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { DockedChat } from "@/components/docked-chat";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
@@ -78,7 +79,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; tint: string; bg: stri
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { setPaletteOpen, theme, toggleTheme, tasks, sidebarCollapsed, toggleSidebar } = useStore();
+  const { setPaletteOpen, theme, toggleTheme, tasks, sidebarCollapsed, toggleSidebar, chatDocked, setChatDocked } = useStore();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -163,22 +164,38 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={cn(
-            "mt-4 flex items-center gap-2 rounded-lg py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
-            sidebarCollapsed ? "justify-center px-0" : "px-2.5",
-          )}
-        >
-          {sidebarCollapsed ? (
-            <PanelLeftOpen className="size-4" aria-hidden />
-          ) : (
-            <PanelLeftClose className="size-4" aria-hidden />
-          )}
-          {!sidebarCollapsed ? "Collapse" : null}
-        </button>
+        <div className={cn("mt-4 flex items-center gap-1", sidebarCollapsed ? "flex-col px-0" : "px-2.5")}>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="flex flex-1 items-center gap-2 rounded-lg py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="size-4" aria-hidden />
+            ) : (
+              <PanelLeftClose className="size-4" aria-hidden />
+            )}
+            {!sidebarCollapsed ? "Collapse" : null}
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatDocked(!chatDocked)}
+            aria-label={chatDocked ? "Hide AI chat panel" : "Pin AI chat panel"}
+            aria-pressed={chatDocked}
+            title={chatDocked ? "Hide AI chat panel" : "Pin AI chat panel"}
+            className={cn(
+              "flex items-center gap-2 rounded-lg py-1.5 text-[13px] transition-colors",
+              sidebarCollapsed ? "justify-center px-0" : "px-2.5",
+              chatDocked
+                ? "bg-primary/12 text-primary"
+                : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+            )}
+          >
+            <Sparkles className="size-4" aria-hidden />
+            {!sidebarCollapsed ? (chatDocked ? "Chat on" : "Pin chat") : null}
+          </button>
+        </div>
 
         <div
           className={cn(
@@ -213,6 +230,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="flex min-w-0 flex-1 flex-col pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-0">
         {children}
       </main>
+
+      {/* Right-docked AI chat (desktop only). While docked, screens render
+          their detail panes as popups instead of side columns. */}
+      {chatDocked ? <DockedChat onClose={() => setChatDocked(false)} /> : null}
 
       {/* iPhone bottom tab bar: 4 tabs split around a raised centre Today button */}
       <MobileBottomNav pathname={pathname} />

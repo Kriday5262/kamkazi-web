@@ -77,7 +77,7 @@ interface TaskAddedState {
 }
 
 export function EmailScreen() {
-  const { addTask, deleteTask, tasks, settings } = useStore();
+  const { addTask, deleteTask, tasks, settings, chatDocked } = useStore();
   const [accountFilter, setAccountFilter] = useState<string>("");
   const [ignoredList, setIgnoredList] = useState<Record<string, boolean>>(() => {
     const s = (settings as unknown as Record<string, unknown>)["emailIgnored"];
@@ -400,8 +400,8 @@ export function EmailScreen() {
             )}
           </div>
 
-          {/* right: detail pane (desktop) */}
-          {selected ? (
+          {/* right: detail pane (desktop; popup sheet when AI chat is docked) */}
+          {selected && !chatDocked ? (
             <div className="hidden w-[420px] shrink-0 border-l border-border lg:block">
               <div className="sticky top-0 h-screen">
                 <EmailDetail
@@ -443,7 +443,7 @@ export function EmailScreen() {
         </div>
       </div>
 
-      {/* mobile detail sheet */}
+      {/* detail sheet — mobile always; desktop too when AI chat is docked */}
       <EmailDetail
         email={selected}
         accountId={selected?.accountId ?? null}
@@ -459,7 +459,7 @@ export function EmailScreen() {
             ? true
             : undefined
         }
-        mobileOnly
+        {...(chatDocked ? { mobileOnly: true } : {})}
       />
     </div>
   );

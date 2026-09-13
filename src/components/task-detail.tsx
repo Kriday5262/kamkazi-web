@@ -18,6 +18,7 @@ import { useStore } from "@/lib/store";
 import { relativeDate, isOverdue } from "@/lib/format";
 import { type Task } from "@/data/seed";
 import { TaskCheckbox } from "@/components/primitives";
+import { Markdown } from "@/components/markdown";
 import { TagChip } from "@/components/tasks-screen";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
   const { tasks, updateTask, deleteTask, toggleTask, addTaskAttachment, removeTaskAttachment } =
     useStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [notesEditing, setNotesEditing] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [tagInput, setTagInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,15 +122,40 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
           </a>
         ) : null}
 
-        {/* Description: plain textarea, thin border-bottom, no box background */}
-        <textarea
-          value={task.notes ?? ""}
-          onChange={(e) => updateTask(task.id, { notes: e.target.value })}
-          placeholder="Add notes"
-          aria-label="Task notes"
-          rows={5}
-          className="mt-3 w-full resize-none border-b border-border bg-transparent px-0 py-2 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-        />
+        {/* Description: view mode renders clickable links (Todoist-style
+            autolink); a click enters edit mode with the same text. */}
+        {notesEditing ? (
+          <textarea
+            value={task.notes ?? ""}
+            onChange={(e) => updateTask(task.id, { notes: e.target.value })}
+            onBlur={() => setNotesEditing(false)}
+            placeholder="Add notes"
+            aria-label="Task notes"
+            rows={5}
+            autoFocus
+            className="mt-3 w-full resize-none border-b border-border bg-transparent px-0 py-2 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+          />
+        ) : (
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Task notes — click to edit"
+            onClick={() => setNotesEditing(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") setNotesEditing(true);
+            }}
+            className={cn(
+              "mt-3 min-w-0 cursor-text border-b border-transparent px-0 py-2 text-[14px] leading-relaxed transition-colors hover:border-border",
+              (task.notes ?? "").trim() === "" && "text-muted-foreground",
+            )}
+          >
+            {(task.notes ?? "").trim() === "" ? (
+              "Add notes"
+            ) : (
+              <Markdown source={task.notes ?? ""} />
+            )}
+          </div>
+        )}
 
         <div className="mt-5 space-y-1">
           <Row icon={<CalendarDays className="size-4" aria-hidden />} label="Due">

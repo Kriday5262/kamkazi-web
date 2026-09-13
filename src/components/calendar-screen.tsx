@@ -111,7 +111,7 @@ function subColour(name: string): string {
 type ViewMode = "month" | "week" | "day";
 
 export function CalendarScreen() {
-  const { tasks, addTask, settings } = useStore();
+  const { tasks, addTask, settings, chatDocked } = useStore();
   const [selectedTaskId, setSelectedTaskIdState] = useState<string | null>(null);
   const [quickTask, setQuickTask] = useState("");
   const [captureOpen, setCaptureOpen] = useState(false);
@@ -616,30 +616,32 @@ export function CalendarScreen() {
 
       {selectedTask || selectedEvent ? (
         <>
-          <div className="hidden w-[350px] shrink-0 border-l border-border xl:block">
-            <div className="sticky top-0 h-screen">
-              {selectedTask ? (
-                <TaskDetail task={selectedTask} onClose={() => setSelectedTaskIdState(null)} />
-              ) : selectedEvent ? (
-                <EventDetail
-                  event={selectedEvent as unknown as DatedEvent}
-                  onClose={() => setSelectedEventId(null)}
-                  onDelete={
-                    selectedEvent.readOnly ? undefined : () => void deleteEvent(selectedEvent.id)
-                  }
-                  onEdit={
-                    selectedEvent.readOnly
-                      ? undefined
-                      : () => {
-                          setEditorFor(selectedEvent);
-                          setSelectedEventId(null);
-                        }
-                  }
-                />
-              ) : null}
+          {!chatDocked ? (
+            <div className="hidden w-[350px] shrink-0 border-l border-border xl:block">
+              <div className="sticky top-0 h-screen">
+                {selectedTask ? (
+                  <TaskDetail task={selectedTask} onClose={() => setSelectedTaskIdState(null)} />
+                ) : selectedEvent ? (
+                  <EventDetail
+                    event={selectedEvent as unknown as DatedEvent}
+                    onClose={() => setSelectedEventId(null)}
+                    onDelete={
+                      selectedEvent.readOnly ? undefined : () => void deleteEvent(selectedEvent.id)
+                    }
+                    onEdit={
+                      selectedEvent.readOnly
+                        ? undefined
+                        : () => {
+                            setEditorFor(selectedEvent);
+                            setSelectedEventId(null);
+                          }
+                    }
+                  />
+                ) : null}
+              </div>
             </div>
-          </div>
-          <div className="fixed inset-0 z-40 xl:hidden">
+          ) : null}
+          <div className={chatDocked ? "fixed inset-0 z-40" : "fixed inset-0 z-40 xl:hidden"}>
             <button
               type="button"
               aria-label="Close details"
