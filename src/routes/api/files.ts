@@ -18,6 +18,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sessionFromRequest } from "@/server/session.util";
 import {
+  abortUpload,
+  appendUploadChunk,
   createDir,
   deleteEntry,
   isImageExt,
@@ -127,6 +129,22 @@ async function filesPostHandler(request: Request): Promise<Response> {
     const file = form.get("file");
     const dir = String(form.get("dir") ?? "/");
     if (!(file instanceof File)) return json({ error: "missing file" }, 400);
+
+    // Chunked upload (op=chunk): part N of T for one uploadId.
+    if (String(form.get("chunk") ?? "") === "1") {
+      const name = String(form.get("name") ?? "");
+      const uploadId = String(form.get("uploadId") ?? "");
+      const index = Number(form.get("index"));
+      const total = Number(form.get("total"));
+      if (form.get("op") === "abort") {
+        const ok = await abortUpload(dir, name, uploadId);
+        return ok ? json({ ok: true }) : json({ error: "abort failed" }, 400);
+      }
+      const buf = Buffer.from(await file.arrayBuffer());
+      const res = await appendUploadChunk(dir, name, uploadId, index, total, buf);
+      return res.ok ? json({ ok: true }) : json({ error: res.error }, 400);
+    }
+
     if (file.size > 200 * 1024 * 1024) return json({ error: "too large (200 MB cap)" }, 413);
     const buf = Buffer.from(await file.arrayBuffer());
     const res = await saveUpload(dir, file.name, buf);

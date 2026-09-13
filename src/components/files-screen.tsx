@@ -191,16 +191,76 @@ export function FilesScreen() {
     const tid = toast.loading(`Uploading 1/${total}…`);
     let ok = 0;
     const failed: string[] = [];
+
+    const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB parts — under any tunnel/body cap
+    const xhrUpload = (
+      form: FormData,
+      onProgress?: (pct: number) => void,
+    ) =>
+      new Promise<boolean>((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/files");
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) {
+            onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+          }
+        };
+        xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+        xhr.onerror = () => resolve(false);
+        xhr.send(form);
+      });
+
     for (let i = 0; i < list.length; i++) {
       const file = list[i]!;
-      toast.loading(`Uploading “${file.name}” (${i + 1}/${total})…`, { id: tid });
+      toast.loading(`Uploading “${file.name}” (${i + 1}/${total}) — 0%`, { id: tid });
+      const prog = (pct: number) =>
+        toast.loading(`Uploading “${file.name}” (${i + 1}/${total}) — ${pct}%`, { id: tid });
       try {
-        const form = new FormData();
-        form.append("dir", dir);
-        form.append("file", file);
-        const res = await fetch("/api/files", { method: "POST", body: form });
-        if (res.ok) ok += 1;
-        else failed.push(file.name);
+        if (file.size > CHUNK_SIZE) {
+          // Chunked: slice into parts, append server-side, rename on last.
+          const uploadId = `u${Date.now().toString(36)}${Math.random()
+            .toString(36)
+            .slice(2, 10)}`;
+          const totalParts = Math.ceil(file.size / CHUNK_SIZE);
+          let done = true;
+          for (let p = 0; p < totalParts; p++) {
+            const slice = file.slice(p * CHUNK_SIZE, (p + 1) * CHUNK_SIZE);
+            const form = new FormData();
+            form.append("chunk", "1");
+            form.append("dir", dir);
+            form.append("name", file.name);
+            form.append("uploadId", uploadId);
+            form.append("index", String(p));
+            form.append("total", String(totalParts));
+            form.append("file", slice, "part");
+            const partOk = await xhrUpload(form, (pct) =>
+              prog(Math.round(((p + pct / 100) / totalParts) * 100)),
+            );
+            if (!partOk) {
+              done = false;
+              break;
+            }
+          }
+          if (done) ok += 1;
+          else {
+            failed.push(file.name);
+            // Clean up the partial temp file.
+            const abortForm = new FormData();
+            abortForm.append("chunk", "1");
+            abortForm.append("op", "abort");
+            abortForm.append("dir", dir);
+            abortForm.append("name", file.name);
+            abortForm.append("uploadId", uploadId);
+            void fetch("/api/files", { method: "POST", body: abortForm });
+          }
+        } else {
+          const form = new FormData();
+          form.append("dir", dir);
+          form.append("file", file);
+          const res = await xhrUpload(form, prog);
+          if (res) ok += 1;
+          else failed.push(file.name);
+        }
       } catch {
         failed.push(file.name);
       }

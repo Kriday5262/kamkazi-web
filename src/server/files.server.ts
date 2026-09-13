@@ -10,7 +10,7 @@
  * Task attachments live at <root>/Work/Kamkazi/Attachments and are naturally
  * part of this tree — one mount, no duplication.
  */
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { realpath } from "node:fs/promises";
 
@@ -200,6 +200,59 @@ export async function saveUpload(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "write failed" };
+  }
+}
+
+/**
+ * Chunked upload for large files: client slices the file and POSTs each part
+ * as multipart (chunk=1, dir, name, uploadId, index, total). Parts accumulate
+ * in a hidden `.<name>.__part-<uploadId>` temp file, renamed into place on the
+ * final chunk. Avoids request-body limits (Cloudflare tunnel caps big bodies)
+ * and lets the client report real byte progress.
+ */
+export async function appendUploadChunk(
+  dirRel: string,
+  fileName: string,
+  uploadId: string,
+  index: number,
+  total: number,
+  data: Buffer,
+): Promise<{ ok: boolean; error?: string }> {
+  const dirAbs = await safePath(dirRel);
+  if (!dirAbs) return { ok: false, error: "bad path" };
+  const safeName = path.basename(fileName).replace(/[^\w.\-() ]+/g, "_").slice(0, 160);
+  if (!safeName || safeName === "." || safeName === "..")
+    return { ok: false, error: "bad file name" };
+  if (!/^[A-Za-z0-9_-]{6,64}$/.test(uploadId)) return { ok: false, error: "bad upload id" };
+  if (!Number.isInteger(index) || index < 0 || !Number.isInteger(total) || total < 1 || index >= total)
+    return { ok: false, error: "bad chunk index" };
+  const temp = path.join(dirAbs, `.${safeName}.__part-${uploadId}`);
+  try {
+    if (index === 0) await writeFile(temp, data, { flag: "w" });
+    else await writeFile(temp, data, { flag: "a" });
+    if (index === total - 1) {
+      await rename(temp, path.join(dirAbs, safeName));
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "chunk write failed" };
+  }
+}
+
+/** Abort a partial chunked upload (client cancel/failure). */
+export async function abortUpload(
+  dirRel: string,
+  fileName: string,
+  uploadId: string,
+): Promise<boolean> {
+  const dirAbs = await safePath(dirRel);
+  if (!dirAbs) return false;
+  const safeName = path.basename(fileName).replace(/[^\w.\-() ]+/g, "_").slice(0, 160);
+  try {
+    await unlink(path.join(dirAbs, `.${safeName}.__part-${uploadId}`));
+    return true;
+  } catch {
+    return false;
   }
 }
 
