@@ -80,23 +80,27 @@ export function relativeStamp(iso: string) {
  * Falls back to today+interval when the task has no due date.
  */
 export function nextRepeatDate(dueDate: string | undefined, repeat: string): string {
-  const base = dueDate ? new Date(dueDate + "T00:00:00") : new Date();
+  // Parse as UTC calendar date (T00:00:00Z) — using local time made the
+  // final toISOString() flip the day for IST users (weekly Sep 13 → 19,
+  // daily could stay on the same day). Pure UTC calendar arithmetic keeps
+  // the calendar day stable; these are date-only fields anyway.
+  const base = dueDate ? new Date(dueDate + "T00:00:00Z") : new Date();
   if (Number.isNaN(base.getTime())) base.setTime(Date.now());
   switch (repeat) {
     case "daily":
-      base.setDate(base.getDate() + 1);
+      base.setUTCDate(base.getUTCDate() + 1);
       break;
     case "weekly":
-      base.setDate(base.getDate() + 7);
+      base.setUTCDate(base.getUTCDate() + 7);
       break;
     case "monthly":
-      base.setMonth(base.getMonth() + 1);
+      base.setUTCMonth(base.getUTCMonth() + 1);
       break;
     case "yearly":
-      base.setFullYear(base.getFullYear() + 1);
+      base.setUTCFullYear(base.getUTCFullYear() + 1);
       break;
     default:
-      base.setDate(base.getDate() + 1);
+      base.setUTCDate(base.getUTCDate() + 1);
   }
   return base.toISOString().slice(0, 10);
 }
