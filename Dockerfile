@@ -10,7 +10,12 @@ COPY . .
 RUN NITRO_PRESET=node_server npm run build
 
 FROM node:22-alpine AS runtime
+# IST everywhere: SmartHub lives in Dehradun; all users are IST.
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/Asia/Kolkata /etc/localtime && \
+    echo "Asia/Kolkata" > /etc/timezone
 ENV NODE_ENV=production \
+    TZ=Asia/Kolkata \
     NITRO_PORT=8086 \
     NITRO_HOST=0.0.0.0
 WORKDIR /app

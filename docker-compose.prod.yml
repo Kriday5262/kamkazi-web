@@ -24,6 +24,7 @@ services:
       # Phase 4 — File Browser: the user's own subtree of the external drive.
       - /media/HIKVISION/Shantanu:/app/shantanu-drive:rw
     environment:
+      TZ: Asia/Kolkata
       NODE_ENV: production
       NITRO_PORT: "8086"
       NITRO_HOST: 0.0.0.0
@@ -47,6 +48,7 @@ services:
     container_name: kamkazi-pg-prod
     restart: unless-stopped
     environment:
+      TZ: Asia/Kolkata
       POSTGRES_DB: kamkazi
       POSTGRES_USER: kamkazi
       POSTGRES_PASSWORD: kamkazi
