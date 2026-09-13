@@ -78,15 +78,6 @@ interface TaskAddedState {
 
 export function EmailScreen() {
   const { addTask, deleteTask, tasks, settings, chatDocked } = useStore();
-  // Mobile viewport (below lg): no inline detail pane exists there.
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    const apply = () => setIsMobileViewport(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
   const [accountFilter, setAccountFilter] = useState<string>("");
   const [ignoredList, setIgnoredList] = useState<Record<string, boolean>>(() => {
     const s = (settings as unknown as Record<string, unknown>)["emailIgnored"];
@@ -345,7 +336,7 @@ export function EmailScreen() {
 
         {/* two-pane on md+ */}
         <div className="flex items-stretch">
-          {/* left: list */}
+          {/* list */}
           <div
             className={cn(
               "min-w-0 flex-1 px-4 pb-24 pt-3 md:px-7",
@@ -408,56 +399,14 @@ export function EmailScreen() {
               </div>
             )}
           </div>
-
-          {/* right: detail pane (desktop; popup sheet when AI chat is docked) */}
-          {selected && !chatDocked ? (
-            <div className="hidden w-[420px] shrink-0 border-l border-border lg:block">
-              <div className="sticky top-0 h-screen">
-                <EmailDetail
-                  email={selected}
-                  accountId={selected.accountId}
-                  open
-                  onOpenChange={(o) => {
-                    if (!o) setSelected(null);
-                  }}
-                  onAddAsTask={(e) => void addEmailAsTask(e)}
-                  taskAdded={Boolean(taskAddedFor(selected))}
-                  taskSummarizing={summarizingKey === `${selected.accountId}|${selected.id}` ? true : undefined}
-                  inlineActions={
-                    <>
-                      {addedTasks[`${selected.accountId}|${selected.id}`] ? (
-                        <button
-                          type="button"
-                          onClick={() => undoEmailTask(selected)}
-                          className="tap w-full rounded-full border border-accent-green/40 bg-accent-green/15 px-2.5 py-1.5 text-[12.5px] font-semibold text-accent-green transition-colors hover:bg-accent-green/25"
-                        >
-                          ✓ Added · <Undo2 className="inline size-3.5" aria-hidden /> Undo
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelected(null);
-                        }}
-                        className="tap w-full rounded-full border border-border px-2.5 py-1.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground lg:hidden"
-                      >
-                        <X className="mr-1 inline size-3.5" aria-hidden /> Close
-                      </button>
-                    </>
-                  }
-                />
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
 
-      {/* detail modal — mobile always; desktop too when AI chat is docked.
-          On desktop without dock, the inline pane handles display. */}
+      {/* detail — always a compact modal (bottom card on mobile, centered on desktop) */}
       <EmailDetail
         email={selected}
         accountId={selected?.accountId ?? null}
-        open={(detailOpen && !!selected) && (chatDocked || isMobileViewport)}
+        open={detailOpen && !!selected}
         onOpenChange={(o) => {
           setDetailOpen(o);
           if (!o) setSelected(null);
@@ -469,7 +418,7 @@ export function EmailScreen() {
             ? true
             : undefined
         }
-        {...(chatDocked ? { mobileOnly: true } : {})}
+        mobileOnly
       />
     </div>
   );

@@ -250,14 +250,14 @@ export function EmailDetail({
 
   if (mobileOnly) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
         <button
           type="button"
           aria-label="Close email"
           onClick={() => onOpenChange(false)}
           className="absolute inset-0 bg-foreground/25"
         />
-        <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-raised">
+        <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-raised sm:rounded-2xl">
           {content}
         </div>
       </div>

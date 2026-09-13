@@ -396,62 +396,26 @@ export function TodayScreen() {
         </div>
       </div>
 
-      {/* detail panel — right sidebar, or centered compact modal when chat is docked */}
+      {/* detail — always a compact modal (bottom card on mobile, centered on desktop) */}
       {selected || selectedEvent ? (
-        <>
-          {!chatDocked ? (
-            <div className="hidden w-[350px] shrink-0 border-l border-border xl:block">
-              <div className="sticky top-0 h-screen">
-                {selected ? (
-                  <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
-                ) : selectedEvent ? (
-                  <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          <div className={chatDocked ? "fixed inset-0 z-40" : "fixed inset-0 z-40 xl:hidden"}>
-            {chatDocked ? (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-                <button
-                  type="button"
-                  aria-label="Close details"
-                  onClick={() => {
-                    setSelectedId(null);
-                    setSelectedEventId(null);
-                  }}
-                  className="absolute inset-0 bg-foreground/25"
-                />
-                <div className="relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-raised">
-                  {selected ? (
-                    <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
-                  ) : selectedEvent ? (
-                    <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  aria-label="Close details"
-                  onClick={() => {
-                    setSelectedId(null);
-                    setSelectedEventId(null);
-                  }}
-                  className="absolute inset-0 bg-foreground/20"
-                />
-                <div className="absolute inset-x-0 bottom-0 top-16 animate-in slide-in-from-bottom-6 overflow-hidden rounded-t-2xl border-t border-border bg-surface shadow-raised duration-200">
-                  {selected ? (
-                    <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
-                  ) : selectedEvent ? (
-                    <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
-                  ) : null}
-                </div>
-              </>
-            )}
+        <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center">
+          <button
+            type="button"
+            aria-label="Close details"
+            onClick={() => {
+              setSelectedId(null);
+              setSelectedEventId(null);
+            }}
+            className="absolute inset-0 bg-foreground/25"
+          />
+          <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-raised sm:rounded-2xl">
+            {selected ? (
+              <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
+            ) : selectedEvent ? (
+              <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
+            ) : null}
           </div>
-        </>
+        </div>
       ) : null}
 
       {/* event editor for [+ Add to this day] */}
