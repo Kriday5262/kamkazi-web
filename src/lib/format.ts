@@ -121,3 +121,15 @@ export function isTimePast(iso?: string | undefined, time?: string | undefined) 
   const now = new Date();
   return h * 60 + (m || 0) <= now.getHours() * 60 + now.getMinutes();
 }
+
+/** Full IST timestamp "YYYY-MM-DDTHH:MM:SS" — must match the server's
+ *  isoDateTimeOf in auth-data.ts, so client-created items sort identically
+ *  to server-mapped ones (a UTC ISO string would sort 5.5h earlier). */
+export function istNowStamp(): string {
+  const ist = new Date(Date.now() + 330 * 60_000);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, "0")}-${String(
+    ist.getUTCDate(),
+  ).padStart(2, "0")}T${String(ist.getUTCHours()).padStart(2, "0")}:${String(
+    ist.getUTCMinutes(),
+  ).padStart(2, "0")}:${String(ist.getUTCSeconds()).padStart(2, "0")}`;
+}

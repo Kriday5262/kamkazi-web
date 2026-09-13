@@ -30,7 +30,7 @@ import {
   type Task,
   type TaskList,
 } from "@/data/seed";
-import { nextRepeatDate } from "@/lib/format";
+import { istNowStamp, nextRepeatDate } from "@/lib/format";
 import {
   addListFn,
   addNotebookFn,
@@ -491,7 +491,7 @@ export function StoreProvider({
       notebookId,
       tags: [],
       pinned: false,
-      createdAt: new Date().toISOString(),
+      createdAt: istNowStamp(),
       updatedAt: TODAY,
     };
     setNotes((prev) => [note, ...prev]);
