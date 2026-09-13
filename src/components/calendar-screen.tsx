@@ -626,7 +626,7 @@ export function CalendarScreen() {
             }}
             className="absolute inset-0 bg-foreground/25"
           />
-          <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-raised sm:rounded-2xl">
+          <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl border border-border bg-surface shadow-raised sm:rounded-xl">
             {selectedTask ? (
               <TaskDetail task={selectedTask} onClose={() => setSelectedTaskIdState(null)} />
             ) : selectedEvent ? (

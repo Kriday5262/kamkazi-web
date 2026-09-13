@@ -126,7 +126,7 @@ export function EmailDetail({
 
   const content = (
     <>
-      <div className="pr-8 text-left">
+      <div className="px-4 pt-4 text-left sm:px-5 sm:pt-5">
         <div className="flex items-center gap-2">
           <span className="truncate text-[12px] font-medium text-muted-foreground">
             {email.from || "(unknown)"}
@@ -156,7 +156,7 @@ export function EmailDetail({
         </a>
       ) : null}
 
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-5">
         {bodyQuery.isPending ? (
           <div className="space-y-2" aria-label="Loading email body">
             <Skeleton className="h-3.5 w-full" />
@@ -209,7 +209,7 @@ export function EmailDetail({
       </div>
 
       {mobileOnly ? (
-        <div className="relative z-10 mt-4 shrink-0 border-t border-border bg-background pt-3">
+        <div className="relative z-10 mt-3 shrink-0 border-t border-border bg-background px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3">
           <button
             type="button"
             disabled={taskAdded || taskSummarizing}
@@ -228,7 +228,7 @@ export function EmailDetail({
           </button>
         </div>
       ) : (
-        <div className="mt-4 shrink-0 space-y-1.5 border-t border-border pt-3">
+        <div className="mt-3 shrink-0 space-y-1.5 border-t border-border px-4 pb-4 pt-3 sm:px-5">
           <button
             type="button"
             disabled={taskAdded || taskSummarizing}
@@ -257,7 +257,7 @@ export function EmailDetail({
           onClick={() => onOpenChange(false)}
           className="absolute inset-0 bg-foreground/25"
         />
-        <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-raised sm:rounded-2xl">
+        <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl border border-border bg-surface shadow-raised sm:rounded-xl">
           {content}
         </div>
       </div>
