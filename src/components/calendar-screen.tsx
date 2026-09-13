@@ -642,33 +642,67 @@ export function CalendarScreen() {
             </div>
           ) : null}
           <div className={chatDocked ? "fixed inset-0 z-40" : "fixed inset-0 z-40 xl:hidden"}>
-            <button
-              type="button"
-              aria-label="Close details"
-              onClick={() => setSelectedEventId(null)}
-              className="absolute inset-0 bg-foreground/20"
-            />
-            <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden rounded-t-2xl border-t border-border bg-surface shadow-raised">
-              {selectedTask ? (
-                <TaskDetail task={selectedTask} onClose={() => setSelectedTaskIdState(null)} />
-              ) : selectedEvent ? (
-                <EventDetail
-                  event={selectedEvent as unknown as DatedEvent}
-                  onClose={() => setSelectedEventId(null)}
-                  onDelete={
-                    selectedEvent.readOnly ? undefined : () => void deleteEvent(selectedEvent.id)
-                  }
-                  onEdit={
-                    selectedEvent.readOnly
-                      ? undefined
-                      : () => {
-                          setEditorFor(selectedEvent);
-                          setSelectedEventId(null);
-                        }
-                  }
+            {chatDocked ? (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+                <button
+                  type="button"
+                  aria-label="Close details"
+                  onClick={() => setSelectedEventId(null)}
+                  className="absolute inset-0 bg-foreground/25"
                 />
-              ) : null}
-            </div>
+                <div className="relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-raised">
+                  {selectedTask ? (
+                    <TaskDetail task={selectedTask} onClose={() => setSelectedTaskIdState(null)} />
+                  ) : selectedEvent ? (
+                    <EventDetail
+                      event={selectedEvent as unknown as DatedEvent}
+                      onClose={() => setSelectedEventId(null)}
+                      onDelete={
+                        selectedEvent.readOnly ? undefined : () => void deleteEvent(selectedEvent.id)
+                      }
+                      onEdit={
+                        selectedEvent.readOnly
+                          ? undefined
+                          : () => {
+                              setEditorFor(selectedEvent);
+                              setSelectedEventId(null);
+                            }
+                      }
+                    />
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  aria-label="Close details"
+                  onClick={() => setSelectedEventId(null)}
+                  className="absolute inset-0 bg-foreground/20"
+                />
+                <div className="absolute inset-x-0 bottom-0 top-16 overflow-hidden rounded-t-2xl border-t border-border bg-surface shadow-raised">
+                  {selectedTask ? (
+                    <TaskDetail task={selectedTask} onClose={() => setSelectedTaskIdState(null)} />
+                  ) : selectedEvent ? (
+                    <EventDetail
+                      event={selectedEvent as unknown as DatedEvent}
+                      onClose={() => setSelectedEventId(null)}
+                      onDelete={
+                        selectedEvent.readOnly ? undefined : () => void deleteEvent(selectedEvent.id)
+                      }
+                      onEdit={
+                        selectedEvent.readOnly
+                          ? undefined
+                          : () => {
+                              setEditorFor(selectedEvent);
+                              setSelectedEventId(null);
+                            }
+                      }
+                    />
+                  ) : null}
+                </div>
+              </>
+            )}
           </div>
         </>
       ) : null}

@@ -804,8 +804,8 @@ export function StoreProvider({
       sidebarCollapsed,
       chatDocked,
       setChatDocked,
-      toggleSidebar: () => setSidebarCollapsed((v) => !v),
       setPaletteOpen,
+      toggleSidebar: () => setSidebarCollapsed((v) => !v),
       toggleTheme: () =>
         setTheme((t) => (t === "light" ? "dark" : t === "dark" ? "system" : "light")),
       setTheme,
@@ -868,6 +868,7 @@ export function StoreProvider({
       renameConversation,
       deleteConversation,
       togglePinConversation,
+      chatDocked,
     ],
   );
 

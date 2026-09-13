@@ -250,21 +250,17 @@ export function EmailDetail({
 
   if (mobileOnly) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="right"
-          className={cn(
-            "flex w-full flex-col gap-0 overflow-hidden p-5 sm:max-w-md",
-            "max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:h-auto max-md:max-h-[85vh] max-md:w-full max-md:rounded-t-2xl max-md:border-t",
-          )}
-        >
-          <SheetHeader className="hidden">
-            <SheetTitle>{email.subject || "(no subject)"}</SheetTitle>
-            <SheetDescription>{email.from}</SheetDescription>
-          </SheetHeader>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <button
+          type="button"
+          aria-label="Close email"
+          onClick={() => onOpenChange(false)}
+          className="absolute inset-0 bg-foreground/25"
+        />
+        <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-raised">
           {content}
-        </SheetContent>
-      </Sheet>
+        </div>
+      </div>
     );
   }
 

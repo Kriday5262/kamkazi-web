@@ -445,18 +445,34 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
         </div>
       ) : null}
 
-      {/* detail sheet — mobile & iPad (always, when chat is docked also desktop) */}
+      {/* detail sheet — mobile & iPad bottom sheet (compact modal on desktop with chat docked) */}
       {selected ? (
         <div className={chatDocked ? "fixed inset-0 z-40" : "fixed inset-0 z-40 xl:hidden"}>
-          <button
-            type="button"
-            aria-label="Close task details"
-            onClick={() => setSelectedId(null)}
-            className="absolute inset-0 bg-foreground/20 backdrop-blur-[1px]"
-          />
-          <div className="absolute inset-x-0 bottom-0 top-16 animate-in slide-in-from-bottom-6 overflow-hidden rounded-t-2xl border-t border-border bg-surface shadow-raised duration-200">
-            <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
-          </div>
+          {chatDocked ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+              <button
+                type="button"
+                aria-label="Close task details"
+                onClick={() => setSelectedId(null)}
+                className="absolute inset-0 bg-foreground/25"
+              />
+              <div className="relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-raised">
+                <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                aria-label="Close task details"
+                onClick={() => setSelectedId(null)}
+                className="absolute inset-0 bg-foreground/20 backdrop-blur-[1px]"
+              />
+              <div className="absolute inset-x-0 bottom-0 top-16 animate-in slide-in-from-bottom-6 overflow-hidden rounded-t-2xl border-t border-border bg-surface shadow-raised duration-200">
+                <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
+              </div>
+            </>
+          )}
         </div>
       ) : null}
     </div>
