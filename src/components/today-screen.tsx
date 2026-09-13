@@ -50,7 +50,7 @@ function timeOfDay(hour: number): keyof typeof HEROES {
 const SYNC_INTERVAL_MIN = 15;
 
 export function TodayScreen() {
-  const { tasks, events, setPaletteOpen, addTask, addNote, addConversation, settings } = useStore();
+  const { tasks, events, setPaletteOpen, addTask, addNote, addConversation, settings, chatDocked } = useStore();
   const navigate = useNavigate();
   const [now, setNow] = useState(() => new Date());
   const [mounted, setMounted] = useState(false);
@@ -396,35 +396,60 @@ export function TodayScreen() {
         </div>
       </div>
 
-      {/* detail panel */}
+      {/* detail panel — right sidebar, or centered compact modal when chat is docked */}
       {selected || selectedEvent ? (
         <>
-          <div className="hidden w-[350px] shrink-0 border-l border-border xl:block">
-            <div className="sticky top-0 h-screen">
-              {selected ? (
-                <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
-              ) : selectedEvent ? (
-                <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
-              ) : null}
+          {!chatDocked ? (
+            <div className="hidden w-[350px] shrink-0 border-l border-border xl:block">
+              <div className="sticky top-0 h-screen">
+                {selected ? (
+                  <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
+                ) : selectedEvent ? (
+                  <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
+                ) : null}
+              </div>
             </div>
-          </div>
-          <div className="fixed inset-0 z-40 xl:hidden">
-            <button
-              type="button"
-              aria-label="Close details"
-              onClick={() => {
-                setSelectedId(null);
-                setSelectedEventId(null);
-              }}
-              className="absolute inset-0 bg-foreground/20"
-            />
-            <div className="absolute inset-x-0 bottom-0 top-16 animate-in slide-in-from-bottom-6 overflow-hidden rounded-t-2xl border-t border-border bg-surface shadow-raised duration-200">
-              {selected ? (
-                <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
-              ) : selectedEvent ? (
-                <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
-              ) : null}
-            </div>
+          ) : null}
+          <div className={chatDocked ? "fixed inset-0 z-40" : "fixed inset-0 z-40 xl:hidden"}>
+            {chatDocked ? (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+                <button
+                  type="button"
+                  aria-label="Close details"
+                  onClick={() => {
+                    setSelectedId(null);
+                    setSelectedEventId(null);
+                  }}
+                  className="absolute inset-0 bg-foreground/25"
+                />
+                <div className="relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-raised">
+                  {selected ? (
+                    <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
+                  ) : selectedEvent ? (
+                    <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  aria-label="Close details"
+                  onClick={() => {
+                    setSelectedId(null);
+                    setSelectedEventId(null);
+                  }}
+                  className="absolute inset-0 bg-foreground/20"
+                />
+                <div className="absolute inset-x-0 bottom-0 top-16 animate-in slide-in-from-bottom-6 overflow-hidden rounded-t-2xl border-t border-border bg-surface shadow-raised duration-200">
+                  {selected ? (
+                    <TaskDetail task={selected} onClose={() => setSelectedId(null)} />
+                  ) : selectedEvent ? (
+                    <EventDetail event={selectedEvent} onClose={() => setSelectedEventId(null)} />
+                  ) : null}
+                </div>
+              </>
+            )}
           </div>
         </>
       ) : null}

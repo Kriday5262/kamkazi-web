@@ -78,6 +78,15 @@ interface TaskAddedState {
 
 export function EmailScreen() {
   const { addTask, deleteTask, tasks, settings, chatDocked } = useStore();
+  // Mobile viewport (below lg): no inline detail pane exists there.
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setIsMobileViewport(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   const [accountFilter, setAccountFilter] = useState<string>("");
   const [ignoredList, setIgnoredList] = useState<Record<string, boolean>>(() => {
     const s = (settings as unknown as Record<string, unknown>)["emailIgnored"];
@@ -443,11 +452,12 @@ export function EmailScreen() {
         </div>
       </div>
 
-      {/* detail sheet — mobile always; desktop too when AI chat is docked */}
+      {/* detail modal — mobile always; desktop too when AI chat is docked.
+          On desktop without dock, the inline pane handles display. */}
       <EmailDetail
         email={selected}
         accountId={selected?.accountId ?? null}
-        open={detailOpen && !!selected}
+        open={(detailOpen && !!selected) && (chatDocked || isMobileViewport)}
         onOpenChange={(o) => {
           setDetailOpen(o);
           if (!o) setSelected(null);

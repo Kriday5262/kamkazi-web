@@ -264,6 +264,9 @@ export function EmailDetail({
     );
   }
 
+  // Inline pane (desktop, chat not docked): render only when open.
+  if (!open) return null;
+
   return (
     <div className="flex h-full flex-col gap-0 overflow-y-auto p-5">
       {content}
