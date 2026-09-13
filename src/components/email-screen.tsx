@@ -77,7 +77,7 @@ interface TaskAddedState {
 }
 
 export function EmailScreen() {
-  const { addTask, deleteTask, settings } = useStore();
+  const { addTask, deleteTask, tasks, settings } = useStore();
   const [accountFilter, setAccountFilter] = useState<string>("");
   const [ignoredList, setIgnoredList] = useState<Record<string, boolean>>(() => {
     const s = (settings as unknown as Record<string, unknown>)["emailIgnored"];
@@ -88,6 +88,23 @@ export function EmailScreen() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [summarizingKey, setSummarizingKey] = useState<string | null>(null);
   const [addedTasks, setAddedTasks] = useState<Record<string, { taskId: string }>>({});
+
+  // An email can be added as a task only once — derived from tasks in the
+  // store (works after refresh, includes completed tasks), with the
+  // session-only addedTasks state layered on top for tasks added this visit.
+  const linkedTaskIds = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const t of tasks) {
+      const em = t.meta?.email;
+      if (em) map[`${em.accountId}|${em.id}`] = t.id;
+    }
+    return map;
+  }, [tasks]);
+  const taskAddedFor = useCallback(
+    (email: InboxEmail): string | null =>
+      addedTasks[`${email.accountId}|${email.id}`]?.taskId ?? linkedTaskIds[`${email.accountId}|${email.id}`] ?? null,
+    [addedTasks, linkedTaskIds],
+  );
 
   // Ignore-list mirror ref: async handlers read the latest list safely.
   const ignoredRef = useRef(ignoredList);
@@ -201,7 +218,8 @@ export function EmailScreen() {
   const addEmailAsTask = useCallback(
     async (email: InboxEmail) => {
       const key = `${email.accountId}|${email.id}`;
-      if (addedTasks[key] || summarizingKey === key) return;
+      // One task per email — a linked task already exists (even completed).
+      if (taskAddedFor(email) || summarizingKey === key) return;
       setSummarizingKey(key);
       let description = email.snippet;
       try {
@@ -233,7 +251,7 @@ export function EmailScreen() {
       });
       setAddedTasks((prev) => ({ ...prev, [key]: { taskId } }));
     },
-    [addTask, addedTasks, summarizingKey],
+    [addTask, taskAddedFor, summarizingKey],
   );
 
   const undoEmailTask = useCallback(
@@ -353,7 +371,7 @@ export function EmailScreen() {
                     key={`${e.accountId}|${e.id}`}
                     email={e}
                     ignored={Boolean(ignoredList[`${e.accountId}|${e.id}`])}
-                    taskAdded={Boolean(addedTasks[`${e.accountId}|${e.id}`])}
+                    taskAdded={Boolean(taskAddedFor(e))}
                     summarizing={summarizingKey === `${e.accountId}|${e.id}`}
                     selected={selected?.id === e.id && selected?.accountId === e.accountId}
                     onOpen={() => {
@@ -394,7 +412,7 @@ export function EmailScreen() {
                     if (!o) setSelected(null);
                   }}
                   onAddAsTask={(e) => void addEmailAsTask(e)}
-                  taskAdded={Boolean(addedTasks[`${selected.accountId}|${selected.id}`])}
+                  taskAdded={Boolean(taskAddedFor(selected))}
                   taskSummarizing={summarizingKey === `${selected.accountId}|${selected.id}` ? true : undefined}
                   inlineActions={
                     <>
@@ -435,7 +453,7 @@ export function EmailScreen() {
           if (!o) setSelected(null);
         }}
         onAddAsTask={(e) => void addEmailAsTask(e)}
-        taskAdded={Boolean(selected && addedTasks[`${selected.accountId}|${selected.id}`])}
+        taskAdded={Boolean(selected && taskAddedFor(selected))}
         taskSummarizing={
           Boolean(selected) && summarizingKey === `${selected!.accountId}|${selected!.id}`
             ? true
