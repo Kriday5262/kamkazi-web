@@ -1,21 +1,28 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { MoreHorizontal, NotebookPen, Pin, Plus, Search, StickyNote } from "lucide-react";
+import { CheckSquare, MoreHorizontal, NotebookPen, Pin, Plus, Search, Square, StickyNote, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import type { Note } from "@/data/seed";
 import { plainPreview } from "@/components/markdown";
 import { relativeDate, relativeStamp } from "@/lib/format";
+import { deleteNotesFn } from "@/lib/auth-data";
 import { EmptyState, SectionLabel } from "@/components/primitives";
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { PageHeader } from "@/components/app-shell";
 import { ManageEntityDialog } from "@/components/manage-entity-dialog";
 import { listIcon } from "@/components/list-icons";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function NotesScreen({ activeNoteId }: { activeNoteId?: string | undefined }) {
-  const { notes, notebooks, addNote, settings, addNotebook, updateNotebook, deleteNotebook } =
+  const { notes, notebooks, addNote, deleteNote, settings, addNotebook, updateNotebook, deleteNotebook } =
     useStore();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  // Multi-select for bulk delete (same pattern as Tasks).
+  const [selectMode, setSelectMode] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
   const [notebook, setNotebook] = useState<string | "all">("all");
   type NotesSort = "created" | "edited" | "title";
   const NOTES_SORT_KEY = "kamkazi-notes-sort";
@@ -162,16 +169,57 @@ export function NotesScreen({ activeNoteId }: { activeNoteId?: string | undefine
           title="Notes"
           subtitle={`${filtered.length} notes`}
           actions={
-            <button
-              type="button"
-              onClick={createNote}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <Plus className="size-4" aria-hidden />
-              New note
-            </button>
+            <>
+              <button
+                type="button"
+                aria-label={selectMode ? "Cancel selection" : "Select multiple notes"}
+                onClick={() => {
+                  setSelectMode(!selectMode);
+                  setCheckedIds(new Set());
+                }}
+                className={cn(
+                  "grid size-8 place-items-center rounded-lg transition-colors",
+                  selectMode
+                    ? "bg-primary/12 text-primary"
+                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+                )}
+              >
+                <CheckSquare className="size-[18px]" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={createNote}
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Plus className="size-4" aria-hidden />
+                New note
+              </button>
+            </>
           }
         />
+        {selectMode ? (
+          <div className="flex items-center justify-between gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur">
+            <span className="text-[13px] text-muted-foreground">{checkedIds.size} selected</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCheckedIds(new Set(filtered.map((n) => n.id)))}
+                className="text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                disabled={checkedIds.size === 0}
+                onClick={() => setConfirmBulk(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-2.5 py-1 text-[12.5px] font-medium text-destructive transition-opacity disabled:opacity-40"
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+                Delete
+              </button>
+            </div>
+          </div>
+        ) : null}
         {/* notebook switcher — iPad & mobile */}
         <div className="flex gap-2 overflow-x-auto border-b border-border px-3 py-2.5 lg:hidden">
           {[{ id: "all", name: "All notes" }, ...notebooks].map((nb) => (
@@ -242,7 +290,21 @@ export function NotesScreen({ activeNoteId }: { activeNoteId?: string | undefine
                   <SectionLabel className="pt-1.5">{label}</SectionLabel>
                   <div className="divide-y divide-border">
                     {group.map((n) => (
-                      <NoteRow key={n.id} id={n.id} active={n.id === activeNoteId} />
+                      <NoteRow
+                        key={n.id}
+                        id={n.id}
+                        active={n.id === activeNoteId}
+                        checkable={selectMode}
+                        checked={checkedIds.has(n.id)}
+                        onCheck={() =>
+                          setCheckedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(n.id)) next.delete(n.id);
+                            else next.add(n.id);
+                            return next;
+                          })
+                        }
+                      />
                     ))}
                   </div>
                 </div>
@@ -251,6 +313,27 @@ export function NotesScreen({ activeNoteId }: { activeNoteId?: string | undefine
           )}
         </div>
       </div>
+
+      {/* bulk delete confirmation */}
+      <ConfirmDeleteDialog
+        open={confirmBulk}
+        title={`Delete ${checkedIds.size} note${checkedIds.size === 1 ? "" : "s"}?`}
+        description="This permanently deletes the selected notes. This can’t be undone."
+        onCancel={() => setConfirmBulk(false)}
+        onConfirm={async () => {
+          const ids = [...checkedIds];
+          setConfirmBulk(false);
+          try {
+            await deleteNotesFn({ data: { ids } });
+            for (const id of ids) deleteNote(id);
+            toast.success(`Deleted ${ids.length} note${ids.length === 1 ? "" : "s"}`);
+          } catch {
+            toast.error("Could not delete the selected notes");
+          }
+          setSelectMode(false);
+          setCheckedIds(new Set());
+        }}
+      />
 
       {/* notebook manage dialog — rename / icon / delete */}
       <ManageEntityDialog
@@ -270,7 +353,19 @@ export function NotesScreen({ activeNoteId }: { activeNoteId?: string | undefine
   );
 }
 
-function NoteRow({ id, active }: { id: string; active: boolean }) {
+function NoteRow({
+  id,
+  active,
+  checkable,
+  checked,
+  onCheck,
+}: {
+  id: string;
+  active: boolean;
+  checkable?: boolean;
+  checked?: boolean;
+  onCheck?: () => void;
+}) {
   const { notes, notebooks } = useStore();
   const note = notes.find((n) => n.id === id);
   if (!note) return null;
@@ -279,12 +374,23 @@ function NoteRow({ id, active }: { id: string; active: boolean }) {
     <Link
       to="/notes/$noteId"
       params={{ noteId: note.id }}
+      onClick={(e) => {
+        if (checkable) {
+          e.preventDefault();
+          onCheck?.();
+        }
+      }}
       className={cn(
         "block px-2 py-3 transition-colors hover:bg-surface-2/70",
-        active && "bg-surface-2",
+        checked || active ? "bg-surface-2" : undefined,
       )}
     >
       <div className="flex items-baseline gap-2">
+        {checkable ? (
+          <span className="mt-0.5 grid size-[18px] shrink-0 place-items-center text-primary self-center">
+            {checked ? <CheckSquare className="size-[18px]" aria-hidden /> : <Square className="size-[18px] opacity-40" aria-hidden />}
+          </span>
+        ) : null}
         <p className="min-w-0 flex-1 truncate text-[14.5px] font-medium">
           {note.title || "Untitled note"}
         </p>

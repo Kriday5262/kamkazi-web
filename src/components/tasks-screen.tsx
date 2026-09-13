@@ -1,11 +1,14 @@
-import { CheckCircle2, Plus, Tag, X } from "lucide-react";
+import { CheckCircle2, CheckSquare, Plus, Square, Tag, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { TODAY, dayOffset, type Task } from "@/data/seed";
 import { relativeDate, isOverdue, formatTime } from "@/lib/format";
+import { deleteTasksFn } from "@/lib/auth-data";
 import { TaskCheckbox, EmptyState, SectionLabel } from "@/components/primitives";
 import { TaskDetail } from "@/components/task-detail";
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { PageHeader } from "@/components/app-shell";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /**
@@ -45,11 +48,17 @@ export function TaskRow({
   selected,
   onSelect,
   showTags = true,
+  checkable,
+  checked,
+  onCheck,
 }: {
   task: Task;
   selected?: boolean;
   onSelect: () => void;
   showTags?: boolean;
+  checkable?: boolean;
+  checked?: boolean;
+  onCheck?: () => void;
 }) {
   const { toggleTask } = useStore();
   const overdue = isOverdue(task.dueDate) && !task.done;
@@ -67,18 +76,23 @@ export function TaskRow({
     <div
       role="button"
       tabIndex={0}
-      onClick={onSelect}
+      onClick={checkable ? onCheck : onSelect}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onSelect();
+          checkable ? onCheck?.() : onSelect();
         }
       }}
       className={cn(
         "group flex w-full cursor-default items-start gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors",
-        selected ? "bg-surface-2" : "hover:bg-surface-2/70",
+        checked || selected ? "bg-surface-2" : "hover:bg-surface-2/70",
       )}
     >
+      {checkable ? (
+        <span className="mt-0.5 grid size-[18px] shrink-0 place-items-center text-primary">
+          {checked ? <CheckSquare className="size-[18px]" aria-hidden /> : <Square className="size-[18px] opacity-40" aria-hidden />}
+        </span>
+      ) : null}
       <TaskCheckbox
         done={task.done}
         priority={task.priority}
@@ -129,9 +143,13 @@ export function TaskRow({
 export const SMART_TASK_VIEWS = ["today", "upcoming"] as const;
 
 export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFilter?: string | undefined }) {
-  const { tasks, addTask } = useStore();
+  const { tasks, addTask, deleteTask } = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // Multi-select for bulk delete. Entering selection mode replaces tap-to-open.
+  const [selectMode, setSelectMode] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
   // Active tag filters (OR-union). Seed from URL when provided.
   const [activeTags, setActiveTags] = useState<string[]>(tagFilter ? [tagFilter] : []);
 
@@ -185,6 +203,28 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
 
   const selected = tasks.find((t) => t.id === selectedId) ?? null;
 
+  const toggleChecked = (id: string) =>
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const bulkDelete = async () => {
+    const ids = [...checkedIds];
+    setConfirmBulk(false);
+    try {
+      await deleteTasksFn({ data: { ids } });
+      for (const id of ids) deleteTask(id);
+      toast.success(`Deleted ${ids.length} task${ids.length === 1 ? "" : "s"}`);
+    } catch {
+      toast.error("Could not delete the selected tasks");
+    }
+    setSelectMode(false);
+    setCheckedIds(new Set());
+  };
+
   const title = view === "today" ? "Today" : view === "upcoming" ? "Upcoming" : "All tasks";
   const subtitle = `${open.length} open · ${done.length} completed${
     activeTags.length ? ` · ${activeTags.map((t) => `#${t}`).join(", ")}` : ""
@@ -192,7 +232,59 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title={title} subtitle={subtitle} />
+      <PageHeader
+        title={title}
+        subtitle={subtitle}
+        actions={
+          selectMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectMode(false);
+                setCheckedIds(new Set());
+              }}
+              className="rounded-lg border border-border px-2.5 py-1 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSelectMode(true)}
+              aria-label="Select multiple tasks"
+              className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+            >
+              <CheckSquare className="size-[18px]" aria-hidden />
+            </button>
+          )
+        }
+      />
+
+      {selectMode ? (
+        <div className="sticky top-[calc(env(safe-area-inset-top)+57px)] z-10 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:px-6">
+          <span className="text-[13px] text-muted-foreground">
+            {checkedIds.size} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCheckedIds(new Set(visible.map((t) => t.id)))}
+              className="text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              disabled={checkedIds.size === 0}
+              onClick={() => setConfirmBulk(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-2.5 py-1 text-[12.5px] font-medium text-destructive transition-opacity disabled:opacity-40"
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+              Delete
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mx-auto w-full max-w-2xl flex-1 px-3 py-4 md:px-6">
         {/* quick add */}
@@ -281,6 +373,9 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
                           task={t}
                           selected={t.id === selectedId}
                           onSelect={() => setSelectedId(t.id)}
+                          checkable={selectMode}
+                          checked={checkedIds.has(t.id)}
+                          onCheck={() => toggleChecked(t.id)}
                         />
                       ))}
                     </div>
@@ -294,6 +389,9 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
                     task={t}
                     selected={t.id === selectedId}
                     onSelect={() => setSelectedId(t.id)}
+                    checkable={selectMode}
+                    checked={checkedIds.has(t.id)}
+                    onCheck={() => toggleChecked(t.id)}
                   />
                 ))}
               </div>
@@ -308,6 +406,9 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
                       task={t}
                       selected={t.id === selectedId}
                       onSelect={() => setSelectedId(t.id)}
+                      checkable={selectMode}
+                      checked={checkedIds.has(t.id)}
+                      onCheck={() => toggleChecked(t.id)}
                     />
                   ))}
                 </div>
@@ -316,6 +417,15 @@ export function TasksScreen({ view = "all", tagFilter }: { view?: string; tagFil
           </>
         )}
       </div>
+
+      {/* bulk delete confirmation */}
+      <ConfirmDeleteDialog
+        open={confirmBulk}
+        title={`Delete ${checkedIds.size} task${checkedIds.size === 1 ? "" : "s"}?`}
+        description="This permanently deletes the selected tasks. This can’t be undone."
+        onCancel={() => setConfirmBulk(false)}
+        onConfirm={bulkDelete}
+      />
 
       {/* detail panel — desktop */}
       {selected ? (

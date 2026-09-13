@@ -78,6 +78,8 @@ export async function emailListHandler(request: Request): Promise<Response> {
           const page = await listEmailsPage(token, {
             max: pageSize,
             fresh,
+            // Inbox only — archive/all-mail stays out of the app's email view.
+            query: "in:inbox",
             ...(tok ? { pageToken: tok } : {}),
           });
           for (const m of page.messages)

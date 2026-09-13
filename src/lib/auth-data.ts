@@ -7,7 +7,7 @@
  * just gets the serialized result.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   calendarEvents,
@@ -250,6 +250,26 @@ export const deleteTaskFn = createServerFn({ method: "POST" })
     const uid = await requireUid(context);
     await db.delete(tasks).where(and(eq(tasks.id, data.id), eq(tasks.userId, uid)));
     return { ok: true };
+  });
+
+export const deleteTasksFn = createServerFn({ method: "POST" })
+  .middleware([requestMiddleware])
+  .validator((input: { ids: string[] }) => input)
+  .handler(async ({ data, context }) => {
+    const uid = await requireUid(context);
+    if (!data.ids.length) return { ok: true, deleted: 0 };
+    await db.delete(tasks).where(and(inArray(tasks.id, data.ids), eq(tasks.userId, uid)));
+    return { ok: true, deleted: data.ids.length };
+  });
+
+export const deleteNotesFn = createServerFn({ method: "POST" })
+  .middleware([requestMiddleware])
+  .validator((input: { ids: string[] }) => input)
+  .handler(async ({ data, context }) => {
+    const uid = await requireUid(context);
+    if (!data.ids.length) return { ok: true, deleted: 0 };
+    await db.delete(notes).where(and(inArray(notes.id, data.ids), eq(notes.userId, uid)));
+    return { ok: true, deleted: data.ids.length };
   });
 
 export const addListFn = createServerFn({ method: "POST" })
