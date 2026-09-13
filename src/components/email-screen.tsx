@@ -243,16 +243,6 @@ export function EmailScreen() {
         <PageHeader
           title="Email"
           subtitle="Read-only inbox across your connected Gmail accounts"
-          actions={
-            <button
-              type="button"
-              onClick={refresh}
-              aria-label="Refresh inbox"
-              className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
-            >
-              <RotateCw className={cn("size-4", q.isFetching && "animate-spin")} aria-hidden />
-            </button>
-          }
         />
 
         {/* account filter + show ignored */}
