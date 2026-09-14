@@ -511,7 +511,7 @@ export const TOOL_DEFINITIONS = [
     function: {
       name: "read_file",
       description:
-        "Read a text file from the user's personal drive (.md/.txt/code, max 200 KB) by path (from list_files). Read-only.",
+        "Read a file from the user's personal drive by path (from list_files). Read-only. Supports text/code files, PDF, Word (.docx), Excel (.xlsx/.xls/.csv) and images (English OCR, slower). Returns the text content.",
       parameters: {
         type: "object",
         properties: {
@@ -762,14 +762,36 @@ export async function executeTool(
       };
     }
     case "read_file": {
-      const { isTextExt, readTextFile } = await import("@/server/files.server");
+      const { isTextExt, readTextFile, safePath } = await import("@/server/files.server");
+      const { isDocumentExt, isImageFileExt, extractDocument, ocrImage, docKindLabel } =
+        await import("@/server/doc-extract.server");
       const fp = String(args["path"] ?? "");
       const ext = fp.toLowerCase().replace(/.*\./, "");
-      if (!isTextExt(ext))
-        return { ok: false, summary: "Only text files (.md/.txt/code) can be read. Images and PDFs open in the Files section." };
-      const res = await readTextFile(fp);
-      if (!res) return { ok: false, summary: "File not found or too large (200 KB cap)." };
-      return { ok: true, summary: `${fp}:\n\n${res.content}` };
+      if (isTextExt(ext)) {
+        const res = await readTextFile(fp);
+        if (!res) return { ok: false, summary: "File not found or too large (200 KB cap)." };
+        return { ok: true, summary: `${fp}:\n\n${res.content}` };
+      }
+      // Documents: PDF / Word / Excel / CSV via extraction.
+      if (isDocumentExt(ext)) {
+        const abs = await safePath(fp);
+        if (!abs) return { ok: false, summary: "Bad path." };
+        const res = await extractDocument(abs, ext);
+        if (!res.ok) return { ok: false, summary: `Could not read ${docKindLabel(ext)}: ${res.error}` };
+        return { ok: true, summary: `${fp} (${res.kind}):\n\n${res.text}` };
+      }
+      // Images: OCR (English) — slower, so only on explicit read.
+      if (isImageFileExt(ext)) {
+        const abs = await safePath(fp);
+        if (!abs) return { ok: false, summary: "Bad path." };
+        const res = await ocrImage(abs);
+        if (!res.ok) return { ok: false, summary: `Image OCR: ${res.error}` };
+        return { ok: true, summary: `${fp} (${res.kind}):\n\n${res.text}` };
+      }
+      return {
+        ok: false,
+        summary: "Unsupported file type for reading. Text, PDF, Word, Excel/CSV and images (OCR) are supported.",
+      };
     }
     default:
       return { ok: false, summary: `Unknown tool ${name}.` };

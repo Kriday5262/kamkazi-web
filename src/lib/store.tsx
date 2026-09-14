@@ -270,6 +270,8 @@ export function StoreProvider({
           ...snapshot,
           id: uid(),
           done: false,
+          // Recurrence resets the checklist: subtasks start uncompleted each cycle.
+          subtasks: snapshot.subtasks.map((s) => ({ ...s, done: false })),
           dueDate: nextDue,
           createdAt: TODAY,
           updatedAt: TODAY,
