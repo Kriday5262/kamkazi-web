@@ -18,7 +18,6 @@ export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 /** Gmail read-only scopes for the per-account "Enable email" incremental consent. */
 export const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/gmail.metadata",
 ];
 export const GMAIL_READONLY_SCOPE: string = "https://www.googleapis.com/auth/gmail.readonly";
 
