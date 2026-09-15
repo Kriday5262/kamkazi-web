@@ -29,6 +29,7 @@ import { Route as ApiExportNotesRouteImport } from './routes/api/export-notes'
 import { Route as ApiFilesRouteImport } from './routes/api/files'
 import { Route as ApiInboxOverviewRouteImport } from './routes/api/inbox-overview'
 import { Route as ApiPushRouteImport } from './routes/api/push'
+import { Route as ApiTimesheetSummaryRouteImport } from './routes/api/timesheet-summary'
 import { Route as ApiTodaySummaryRouteImport } from './routes/api/today-summary'
 import { Route as ApiToolConfirmRouteImport } from './routes/api/tool-confirm'
 import { Route as ApiWeatherRouteImport } from './routes/api/weather'
@@ -143,6 +144,11 @@ const ApiPushRoute = ApiPushRouteImport.update({
   path: '/api/push',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTimesheetSummaryRoute = ApiTimesheetSummaryRouteImport.update({
+  id: '/api/timesheet-summary',
+  path: '/api/timesheet-summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTodaySummaryRoute = ApiTodaySummaryRouteImport.update({
   id: '/api/today-summary',
   path: '/api/today-summary',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/api/files': typeof ApiFilesRoute
   '/api/inbox-overview': typeof ApiInboxOverviewRoute
   '/api/push': typeof ApiPushRouteWithChildren
+  '/api/timesheet-summary': typeof ApiTimesheetSummaryRoute
   '/api/today-summary': typeof ApiTodaySummaryRoute
   '/api/tool-confirm': typeof ApiToolConfirmRoute
   '/api/weather': typeof ApiWeatherRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/api/files': typeof ApiFilesRoute
   '/api/inbox-overview': typeof ApiInboxOverviewRoute
   '/api/push': typeof ApiPushRouteWithChildren
+  '/api/timesheet-summary': typeof ApiTimesheetSummaryRoute
   '/api/today-summary': typeof ApiTodaySummaryRoute
   '/api/tool-confirm': typeof ApiToolConfirmRoute
   '/api/weather': typeof ApiWeatherRoute
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/api/files': typeof ApiFilesRoute
   '/api/inbox-overview': typeof ApiInboxOverviewRoute
   '/api/push': typeof ApiPushRouteWithChildren
+  '/api/timesheet-summary': typeof ApiTimesheetSummaryRoute
   '/api/today-summary': typeof ApiTodaySummaryRoute
   '/api/tool-confirm': typeof ApiToolConfirmRoute
   '/api/weather': typeof ApiWeatherRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/api/files'
     | '/api/inbox-overview'
     | '/api/push'
+    | '/api/timesheet-summary'
     | '/api/today-summary'
     | '/api/tool-confirm'
     | '/api/weather'
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/api/files'
     | '/api/inbox-overview'
     | '/api/push'
+    | '/api/timesheet-summary'
     | '/api/today-summary'
     | '/api/tool-confirm'
     | '/api/weather'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/api/files'
     | '/api/inbox-overview'
     | '/api/push'
+    | '/api/timesheet-summary'
     | '/api/today-summary'
     | '/api/tool-confirm'
     | '/api/weather'
@@ -444,6 +456,7 @@ export interface RootRouteChildren {
   ApiFilesRoute: typeof ApiFilesRoute
   ApiInboxOverviewRoute: typeof ApiInboxOverviewRoute
   ApiPushRoute: typeof ApiPushRouteWithChildren
+  ApiTimesheetSummaryRoute: typeof ApiTimesheetSummaryRoute
   ApiTodaySummaryRoute: typeof ApiTodaySummaryRoute
   ApiToolConfirmRoute: typeof ApiToolConfirmRoute
   ApiWeatherRoute: typeof ApiWeatherRoute
@@ -600,6 +613,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPushRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/timesheet-summary': {
+      id: '/api/timesheet-summary'
+      path: '/api/timesheet-summary'
+      fullPath: '/api/timesheet-summary'
+      preLoaderRoute: typeof ApiTimesheetSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/today-summary': {
       id: '/api/today-summary'
       path: '/api/today-summary'
@@ -726,6 +746,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFilesRoute: ApiFilesRoute,
   ApiInboxOverviewRoute: ApiInboxOverviewRoute,
   ApiPushRoute: ApiPushRouteWithChildren,
+  ApiTimesheetSummaryRoute: ApiTimesheetSummaryRoute,
   ApiTodaySummaryRoute: ApiTodaySummaryRoute,
   ApiToolConfirmRoute: ApiToolConfirmRoute,
   ApiWeatherRoute: ApiWeatherRoute,
