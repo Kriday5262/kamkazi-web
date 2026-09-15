@@ -86,6 +86,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     // itself (which bounces logged-in users back to /).
     const session = await getSession();
     const pathname = location.pathname;
+    // Public company pages (Google verification requirement) skip the guard.
+    const { isPublicPath } = await import("@/routes/public-paths");
+    if (isPublicPath(pathname)) return { session, initialData: null };
     if (!session.username) {
       if (pathname === "/login") return { session, initialData: null };
       throw redirect({ to: "/login" });

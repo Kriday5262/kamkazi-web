@@ -11,10 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as CompanyRouteImport } from './routes/company'
 import { Route as EmailRouteImport } from './routes/email'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TimesheetRouteImport } from './routes/timesheet'
 import { Route as ApiAttachmentsRouteImport } from './routes/api/attachments'
 import { Route as ApiBriefingRouteImport } from './routes/api/briefing'
@@ -54,6 +57,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompanyRoute = CompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailRoute = EmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -69,9 +77,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TimesheetRoute = TimesheetRouteImport.update({
@@ -218,10 +236,13 @@ const ApiPushVapidKeyRoute = ApiPushVapidKeyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/company': typeof CompanyRoute
   '/email': typeof EmailRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/timesheet': typeof TimesheetRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
@@ -254,10 +275,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/company': typeof CompanyRoute
   '/email': typeof EmailRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/timesheet': typeof TimesheetRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
@@ -291,10 +315,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/company': typeof CompanyRoute
   '/email': typeof EmailRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/timesheet': typeof TimesheetRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
@@ -329,10 +356,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/calendar'
+    | '/company'
     | '/email'
     | '/files'
     | '/login'
+    | '/privacy'
     | '/settings'
+    | '/terms'
     | '/timesheet'
     | '/api/attachments'
     | '/api/briefing'
@@ -365,10 +395,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/calendar'
+    | '/company'
     | '/email'
     | '/files'
     | '/login'
+    | '/privacy'
     | '/settings'
+    | '/terms'
     | '/timesheet'
     | '/api/attachments'
     | '/api/briefing'
@@ -401,10 +434,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/calendar'
+    | '/company'
     | '/email'
     | '/files'
     | '/login'
+    | '/privacy'
     | '/settings'
+    | '/terms'
     | '/timesheet'
     | '/api/attachments'
     | '/api/briefing'
@@ -438,10 +474,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CalendarRoute: typeof CalendarRoute
+  CompanyRoute: typeof CompanyRoute
   EmailRoute: typeof EmailRoute
   FilesRoute: typeof FilesRoute
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
+  TermsRoute: typeof TermsRoute
   TimesheetRoute: typeof TimesheetRoute
   ApiAttachmentsRoute: typeof ApiAttachmentsRoute
   ApiBriefingRoute: typeof ApiBriefingRoute
@@ -487,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/company': {
+      id: '/company'
+      path: '/company'
+      fullPath: '/company'
+      preLoaderRoute: typeof CompanyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email': {
       id: '/email'
       path: '/email'
@@ -508,11 +554,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/timesheet': {
@@ -728,10 +788,13 @@ const ApiPushRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CalendarRoute: CalendarRoute,
+  CompanyRoute: CompanyRoute,
   EmailRoute: EmailRoute,
   FilesRoute: FilesRoute,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
+  TermsRoute: TermsRoute,
   TimesheetRoute: TimesheetRoute,
   ApiAttachmentsRoute: ApiAttachmentsRoute,
   ApiBriefingRoute: ApiBriefingRoute,
