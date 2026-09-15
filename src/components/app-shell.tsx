@@ -3,6 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CalendarDays,
   CalendarRange,
+  Clock,
   Command,
   HardDrive,
   Moon,
@@ -54,6 +55,13 @@ const NAV: { to: string; label: string; icon: LucideIcon; tint: string; bg: stri
     icon: Mail,
     tint: "text-accent-blue",
     bg: "bg-accent-blue/12",
+  },
+  {
+    to: "/timesheet",
+    label: "Timesheet",
+    icon: Clock,
+    tint: "text-accent-amber",
+    bg: "bg-accent-amber/12",
   },
   {
     to: "/chat",

@@ -302,3 +302,44 @@ export const userSettings = pgTable("user_settings", {
 
 // Re-export the base table module so drizzle-kit picks everything up from here.
 export { primaryKey };
+
+/** Timesheet module — manual daily work log entries. */
+export const timesheetEntries = pgTable(
+  "timesheet_entries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** IST calendar day "YYYY-MM-DD" this entry belongs to. */
+    date: text("date").notNull(),
+    title: text("title").notNull(),
+    /** Work type bucket: Case Study | White Paper | Approach Note | Presentation | Video Production | Web Development | App Development | UI/UX Design | Admin Tasks | Other */
+    type: text("type").notNull(),
+    /** Work area: NStarX | Syneroid | Kamkazi | Personal */
+    area: text("area").notNull(),
+    /** Optional hours spent (0.5 granularity). */
+    hours: text("hours"),
+    note: text("note"),
+    createdAtTs: timestamp("created_at_ts", { withTimezone: true }).notNull().defaultNow(),
+    updatedAtTs: timestamp("updated_at_ts", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("timesheet_entries_user_date_idx").on(t.userId, t.date)],
+);
+
+/** AI day-journal snapshots (one per day, regenerated on demand). */
+export const timesheetSummaries = pgTable(
+  "timesheet_summaries",
+  {
+    /** "<userId>|<date>" */
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    summary: text("summary").notNull(),
+    ai: boolean("ai").notNull().default(true),
+    generatedAtTs: timestamp("generated_at_ts", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("timesheet_summaries_user_date_idx").on(t.userId, t.date)],
+);

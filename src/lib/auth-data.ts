@@ -20,7 +20,7 @@ import {
   userSettings,
 } from "@/db/schema";
 import { requireUid, requestMiddleware, sessionFromRequest } from "@/request-context";
-import { calendarSources } from "@/db/schema";
+import { calendarSources, timesheetEntries, timesheetSummaries } from "@/db/schema";
 import type {
   CalendarEvent,
   ChatMessage,
@@ -462,5 +462,103 @@ export const saveSettingsFn = createServerFn({ method: "POST" })
         target: userSettings.userId,
         set: { settings: merged, updatedAtTs: new Date() },
       });
+    return { ok: true };
+  });
+
+// ------------------------- Timesheet module ---------------------------------
+
+export interface TimesheetEntry {
+  id: string;
+  date: string; // IST "YYYY-MM-DD"
+  title: string;
+  type: string;
+  area: string;
+  hours?: string | undefined;
+  note?: string | undefined;
+  createdAt: string;
+}
+
+export const loadTimesheet = createServerFn({ method: "GET" })
+  .middleware([requestMiddleware])
+  .handler(async ({ context }) => {
+    const uid = await requireUid(context);
+    const rows = await db
+      .select()
+      .from(timesheetEntries)
+      .where(eq(timesheetEntries.userId, uid))
+      .orderBy(asc(timesheetEntries.date), asc(timesheetEntries.createdAtTs));
+    return {
+      entries: rows.map((r): TimesheetEntry => ({
+        id: r.id,
+        date: r.date,
+        title: r.title,
+        type: r.type,
+        area: r.area,
+        hours: r.hours ?? undefined,
+        note: r.note ?? undefined,
+        createdAt: r.createdAtTs.toISOString(),
+      })),
+    };
+  });
+
+export const saveTimesheetFn = createServerFn({ method: "POST" })
+  .middleware([requestMiddleware])
+  .validator(
+    (input: {
+      entry: {
+        id: string;
+        date: string;
+        title: string;
+        type: string;
+        area: string;
+        hours?: string;
+        note?: string;
+      };
+    }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const uid = await requireUid(context);
+    const t = data.entry;
+    const values = {
+      userId: uid,
+      date: t.date,
+      title: t.title,
+      type: t.type,
+      area: t.area,
+      hours: t.hours || null,
+      note: t.note || null,
+      updatedAtTs: new Date(),
+    };
+    const existing = await db
+      .select({ id: timesheetEntries.id })
+      .from(timesheetEntries)
+      .where(and(eq(timesheetEntries.id, t.id), eq(timesheetEntries.userId, uid)));
+    if (existing.length === 0) {
+      await db.insert(timesheetEntries).values({ id: t.id, ...values });
+    } else {
+      await db.update(timesheetEntries).set(values).where(eq(timesheetEntries.id, t.id));
+    }
+    return { ok: true };
+  });
+
+export const deleteTimesheetFn = createServerFn({ method: "POST" })
+  .middleware([requestMiddleware])
+  .validator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const uid = await requireUid(context);
+    await db
+      .delete(timesheetEntries)
+      .where(and(eq(timesheetEntries.id, data.id), eq(timesheetEntries.userId, uid)));
+    return { ok: true };
+  });
+
+export const clearTimesheetSummaryFn = createServerFn({ method: "POST" })
+  .middleware([requestMiddleware])
+  .validator((input: { date: string }) => input)
+  .handler(async ({ data, context }) => {
+    const uid = await requireUid(context);
+    await db
+      .delete(timesheetSummaries)
+      .where(and(eq(timesheetSummaries.date, data.date), eq(timesheetSummaries.userId, uid)));
     return { ok: true };
   });

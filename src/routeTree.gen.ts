@@ -15,6 +15,7 @@ import { Route as EmailRouteImport } from './routes/email'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TimesheetRouteImport } from './routes/timesheet'
 import { Route as ApiAttachmentsRouteImport } from './routes/api/attachments'
 import { Route as ApiBriefingRouteImport } from './routes/api/briefing'
 import { Route as ApiCalendarRouteImport } from './routes/api/calendar'
@@ -70,6 +71,11 @@ const LoginRoute = LoginRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TimesheetRoute = TimesheetRouteImport.update({
+  id: '/timesheet',
+  path: '/timesheet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAttachmentsRoute = ApiAttachmentsRouteImport.update({
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/timesheet': typeof TimesheetRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/timesheet': typeof TimesheetRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/timesheet': typeof TimesheetRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
@@ -315,6 +324,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/login'
     | '/settings'
+    | '/timesheet'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/login'
     | '/settings'
+    | '/timesheet'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/login'
     | '/settings'
+    | '/timesheet'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
@@ -418,6 +430,7 @@ export interface RootRouteChildren {
   FilesRoute: typeof FilesRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
+  TimesheetRoute: typeof TimesheetRoute
   ApiAttachmentsRoute: typeof ApiAttachmentsRoute
   ApiBriefingRoute: typeof ApiBriefingRoute
   ApiCalendarRoute: typeof ApiCalendarRoute
@@ -487,6 +500,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/timesheet': {
+      id: '/timesheet'
+      path: '/timesheet'
+      fullPath: '/timesheet'
+      preLoaderRoute: typeof TimesheetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/attachments': {
@@ -692,6 +712,7 @@ const rootRouteChildren: RootRouteChildren = {
   FilesRoute: FilesRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
+  TimesheetRoute: TimesheetRoute,
   ApiAttachmentsRoute: ApiAttachmentsRoute,
   ApiBriefingRoute: ApiBriefingRoute,
   ApiCalendarRoute: ApiCalendarRoute,
