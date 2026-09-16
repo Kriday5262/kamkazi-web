@@ -275,7 +275,7 @@ export function JournalScreen() {
           </div>
 
           {/* Area filter chips (like email account filters) */}
-          <div className="flex flex-wrap items-center gap-2 pb-4">
+          <div className="flex flex-wrap items-center gap-2 pb-5 pt-1">
             <button
               type="button"
               onClick={() => setAreaFilter("")}
