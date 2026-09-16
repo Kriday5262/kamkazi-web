@@ -1,5 +1,5 @@
 /**
- * Timesheet — the daily work log.
+ * Journal — the daily work log.
  *
  * Layout mirrors the Agenda (calendar-screen) month view: header with
  * month + nav, left pane (mini calendar + AI day-journal card + monthly
@@ -63,7 +63,7 @@ interface SummaryState {
   loading: boolean;
 }
 
-export function TimesheetScreen() {
+export function JournalScreen() {
   const today = istToday();
   const todayParts = today.split("-").map(Number) as [number, number, number];
   const [cursor, setCursor] = useState({ year: todayParts[0], month: todayParts[1] - 1 });
@@ -71,6 +71,7 @@ export function TimesheetScreen() {
   const [entries, setEntries] = useState<TimesheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [statsBy, setStatsBy] = useState<"type" | "area">("type");
+  const [areaFilter, setAreaFilter] = useState<string>("");
 
   // entry editor modal
   const [editorOpen, setEditorOpen] = useState(false);
@@ -199,7 +200,8 @@ export function TimesheetScreen() {
   while (cells.length % 7 !== 0) cells.push(null);
 
   const monthPrefix = `${cursor.year}-${String(cursor.month + 1).padStart(2, "0")}`;
-  const monthEntries = entries.filter((e) => e.date.startsWith(monthPrefix));
+  const filteredEntries = areaFilter ? entries.filter((e) => e.area === areaFilter) : entries;
+  const monthEntries = filteredEntries.filter((e) => e.date.startsWith(monthPrefix));
   const byKey = useMemo(() => {
     const m = new Map<string, { count: number; hours: number }>();
     for (const e of monthEntries) {
@@ -211,8 +213,8 @@ export function TimesheetScreen() {
     }
     return [...m.entries()].sort((a, b) => b[1].count - a[1].count);
   }, [monthEntries, statsBy]);
-  const entryDates = new Set(entries.map((e) => e.date));
-  const dayEntries = entries.filter((e) => e.date === selected);
+  const entryDates = new Set(filteredEntries.map((e) => e.date));
+  const dayEntries = filteredEntries.filter((e) => e.date === selected);
   const hoursOf = (list: TimesheetEntry[]) =>
     list.reduce((a, e) => a + (Number(e.hours) || 0), 0);
 
@@ -228,7 +230,7 @@ export function TimesheetScreen() {
                 <span className="num text-muted-foreground">{cursor.year}</span>
               </h1>
               <p className="mt-1 truncate text-[13px] font-medium text-muted-foreground">
-                Timesheet — daily log of work
+                Journal — daily log of work
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -263,13 +265,47 @@ export function TimesheetScreen() {
               <button
                 type="button"
                 onClick={() => void load()}
-                aria-label="Refresh timesheet"
+                aria-label="Refresh journal"
                 title="Refresh"
                 className="tap grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[var(--shadow-panel)] transition-colors hover:text-foreground"
               >
                 <RefreshCw className={cn("size-4", loading && "animate-spin")} aria-hidden />
               </button>
             </div>
+          </div>
+
+          {/* Area filter chips (like email account filters) */}
+          <div className="flex flex-wrap items-center gap-2 pb-4">
+            <button
+              type="button"
+              onClick={() => setAreaFilter("")}
+              aria-pressed={areaFilter === ""}
+              className={cn(
+                "tap rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
+                areaFilter === ""
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground",
+              )}
+            >
+              All
+            </button>
+            {TIMESHEET_AREAS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => setAreaFilter(areaFilter === a ? "" : a)}
+                aria-pressed={areaFilter === a}
+                className={cn(
+                  "tap rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
+                  areaFilter === a
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span className={cn("mr-1.5 inline-block size-2 rounded-full align-middle", AREA_DOT[a] ?? "bg-accent-rose")} aria-hidden />
+                {a}
+              </button>
+            ))}
           </div>
 
           <div className="mt-5 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-8">
@@ -402,7 +438,7 @@ export function TimesheetScreen() {
             </div>
 
             {/* Right pane: selected day */}
-            <section className="min-w-0" aria-label="Timesheet entries for selected day">
+            <section className="min-w-0" aria-label="Journal entries for selected day">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-[16px] font-bold tracking-tight">
                   {selected === today ? "Today" : longDate(selected)}

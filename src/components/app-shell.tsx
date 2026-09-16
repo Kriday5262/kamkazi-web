@@ -58,7 +58,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; tint: string; bg: stri
   },
   {
     to: "/timesheet",
-    label: "Timesheet",
+    label: "Journal",
     icon: Clock,
     tint: "text-accent-amber",
     bg: "bg-accent-amber/12",
