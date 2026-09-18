@@ -45,7 +45,9 @@ import { Route as TasksListIdRouteImport } from './routes/tasks.$listId'
 import { Route as ApiGoogleAuthRouteImport } from './routes/api/google/auth'
 import { Route as ApiGoogleCalendarsRouteImport } from './routes/api/google/calendars'
 import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callback'
+import { Route as ApiMobileTasksRouteImport } from './routes/api/mobile/tasks'
 import { Route as ApiPushVapidKeyRouteImport } from './routes/api/push.vapid-key'
+import { Route as ApiMobileAuthLoginRouteImport } from './routes/api/mobile/auth/login'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -227,10 +229,20 @@ const ApiGoogleCallbackRoute = ApiGoogleCallbackRouteImport.update({
   path: '/api/google/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileTasksRoute = ApiMobileTasksRouteImport.update({
+  id: '/api/mobile/tasks',
+  path: '/api/mobile/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPushVapidKeyRoute = ApiPushVapidKeyRouteImport.update({
   id: '/vapid-key',
   path: '/vapid-key',
   getParentRoute: () => ApiPushRoute,
+} as any)
+const ApiMobileAuthLoginRoute = ApiMobileAuthLoginRouteImport.update({
+  id: '/api/mobile/auth/login',
+  path: '/api/mobile/auth/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -270,7 +282,9 @@ export interface FileRoutesByFullPath {
   '/api/google/auth': typeof ApiGoogleAuthRoute
   '/api/google/calendars': typeof ApiGoogleCalendarsRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/mobile/tasks': typeof ApiMobileTasksRoute
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
+  '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -309,7 +323,9 @@ export interface FileRoutesByTo {
   '/api/google/auth': typeof ApiGoogleAuthRoute
   '/api/google/calendars': typeof ApiGoogleCalendarsRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/mobile/tasks': typeof ApiMobileTasksRoute
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
+  '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -349,7 +365,9 @@ export interface FileRoutesById {
   '/api/google/auth': typeof ApiGoogleAuthRoute
   '/api/google/calendars': typeof ApiGoogleCalendarsRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/mobile/tasks': typeof ApiMobileTasksRoute
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
+  '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -390,7 +408,9 @@ export interface FileRouteTypes {
     | '/api/google/auth'
     | '/api/google/calendars'
     | '/api/google/callback'
+    | '/api/mobile/tasks'
     | '/api/push/vapid-key'
+    | '/api/mobile/auth/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -429,7 +449,9 @@ export interface FileRouteTypes {
     | '/api/google/auth'
     | '/api/google/calendars'
     | '/api/google/callback'
+    | '/api/mobile/tasks'
     | '/api/push/vapid-key'
+    | '/api/mobile/auth/login'
   id:
     | '__root__'
     | '/'
@@ -468,7 +490,9 @@ export interface FileRouteTypes {
     | '/api/google/auth'
     | '/api/google/calendars'
     | '/api/google/callback'
+    | '/api/mobile/tasks'
     | '/api/push/vapid-key'
+    | '/api/mobile/auth/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -508,6 +532,8 @@ export interface RootRouteChildren {
   ApiGoogleAuthRoute: typeof ApiGoogleAuthRoute
   ApiGoogleCalendarsRoute: typeof ApiGoogleCalendarsRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
+  ApiMobileTasksRoute: typeof ApiMobileTasksRoute
+  ApiMobileAuthLoginRoute: typeof ApiMobileAuthLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -764,12 +790,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGoogleCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile/tasks': {
+      id: '/api/mobile/tasks'
+      path: '/api/mobile/tasks'
+      fullPath: '/api/mobile/tasks'
+      preLoaderRoute: typeof ApiMobileTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/push/vapid-key': {
       id: '/api/push/vapid-key'
       path: '/vapid-key'
       fullPath: '/api/push/vapid-key'
       preLoaderRoute: typeof ApiPushVapidKeyRouteImport
       parentRoute: typeof ApiPushRoute
+    }
+    '/api/mobile/auth/login': {
+      id: '/api/mobile/auth/login'
+      path: '/api/mobile/auth/login'
+      fullPath: '/api/mobile/auth/login'
+      preLoaderRoute: typeof ApiMobileAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -822,6 +862,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGoogleAuthRoute: ApiGoogleAuthRoute,
   ApiGoogleCalendarsRoute: ApiGoogleCalendarsRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
+  ApiMobileTasksRoute: ApiMobileTasksRoute,
+  ApiMobileAuthLoginRoute: ApiMobileAuthLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

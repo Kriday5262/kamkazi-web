@@ -343,3 +343,19 @@ export const timesheetSummaries = pgTable(
   },
   (t) => [index("timesheet_summaries_user_date_idx").on(t.userId, t.date)],
 );
+
+/** Mobile app API tokens (P1 native-iOS foundation). One row per device. */
+export const apiTokens = pgTable(
+  "api_tokens",
+  {
+    /** SHA-256 hex of the raw token — raw token is never stored. */
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceName: text("device_name").notNull().default(""),
+    createdAtTs: timestamp("created_at_ts", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedTs: timestamp("last_used_ts", { withTimezone: true }),
+  },
+  (t) => [index("api_tokens_user_idx").on(t.userId)],
+);
