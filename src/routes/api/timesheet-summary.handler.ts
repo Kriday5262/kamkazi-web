@@ -36,6 +36,11 @@ export async function timesheetSummaryHandler(request: Request): Promise<Respons
     ? String(body.date)
     : istToday();
   const force = body.force === true;
+
+  // AI summaries are a retrospective: only yesterday and before. Today/future → no generation.
+  if (date >= istToday()) {
+    return json({ text: "", ai: false, cached: false, future: true });
+  }
   const summaryId = `${uid}|${date}`;
 
   if (!force) {

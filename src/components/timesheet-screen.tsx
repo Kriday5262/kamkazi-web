@@ -103,7 +103,12 @@ export function JournalScreen() {
   });
 
   // (Re)fetch the AI summary whenever the selected day changes or a regen is asked.
+  const summaryEligible = selected < today; // retrospective only: yesterday and before
   useMemo(() => {
+    if (!summaryEligible) {
+      setSummary({ text: "", ai: false, cached: false, loading: false });
+      return;
+    }
     let dead = false;
     setSummary((s) => ({ ...s, loading: true }));
     (async () => {
@@ -122,9 +127,10 @@ export function JournalScreen() {
     return () => {
       dead = true;
     };
-  }, [selected, summaryTick]);
+  }, [selected, summaryTick, summaryEligible]);
 
   const regenerate = async () => {
+    if (!summaryEligible) return;
     setSummary((s) => ({ ...s, loading: true }));
     try {
       const res = await fetch("/api/timesheet-summary", {
@@ -360,7 +366,8 @@ export function JournalScreen() {
                 </div>
               </section>
 
-              {/* AI day journal */}
+              {/* AI day journal — retrospective only (yesterday and before) */}
+            {summaryEligible ? (
               <section className="panel animate-fade-up p-4" aria-label="AI day summary">
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="text-[13.5px] font-bold tracking-tight">AI Day Log</h2>
@@ -390,6 +397,7 @@ export function JournalScreen() {
                   </p>
                 ) : null}
               </section>
+            ) : null}
 
               {/* Monthly stats */}
               <section className="panel animate-fade-up p-4" aria-label="Monthly stats">
