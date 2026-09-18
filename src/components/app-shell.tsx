@@ -272,6 +272,7 @@ type MoreEntry =
 
 const MORE_ITEMS: MoreEntry[] = [
   { label: "Search", icon: Search, kind: "action", action: "search" },
+  { label: "Journal", icon: Clock, kind: "link", to: "/timesheet" },
   { label: "Files", icon: HardDrive, kind: "link", to: "/files" },
   { label: "Settings", icon: Settings2, kind: "link", to: "/settings" },
 ];
