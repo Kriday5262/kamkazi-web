@@ -1,5 +1,9 @@
-/** Handler for GET /api/mobile/tasks — Bearer-auth task feed. */
+/**
+ * GET /api/mobile/tasks?filter=today|open|done|all — Bearer-auth task feed
+ * for the native iOS app (P1 phase). Mirrors the web app's task shape.
+ */
 import { mobileAuth, mobileJson, mobileUnauthorized } from "@/server/mobile-auth.server";
+import { istToday } from "@/lib/format";
 
 export async function mobileTasksHandler(request: Request): Promise<Response> {
   const session = await mobileAuth(request);
@@ -8,13 +12,14 @@ export async function mobileTasksHandler(request: Request): Promise<Response> {
   const filter = url.searchParams.get("filter") ?? "open";
   const { db } = await import("@/db");
   const { tasks } = await import("@/db/schema");
-  const { eq, desc } = await import("drizzle-orm");
+  const { desc, eq } = await import("drizzle-orm");
   const rows = await db
     .select()
     .from(tasks)
     .where(eq(tasks.userId, session.uid))
-    .orderBy(desc(tasks.createdAtTs));
-  const today = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
+    .orderBy(desc(tasks.createdAtTs))
+    .limit(500);
+  const today = istToday();
   let list = rows;
   if (filter === "today") list = rows.filter((t) => t.dueDate === today && !t.done);
   else if (filter === "open") list = rows.filter((t) => !t.done);
@@ -32,7 +37,7 @@ export async function mobileTasksHandler(request: Request): Promise<Response> {
       priority: t.priority,
       tags: t.tags,
       subtasks: t.subtasks,
-      hasEmail: !!t.meta?.email,
+      hasEmail: !!(t.meta as { email?: unknown } | null)?.email,
       createdAt: t.createdAtTs,
     })),
   });
