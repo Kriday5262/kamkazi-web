@@ -47,6 +47,7 @@ import { Route as ApiGoogleCalendarsRouteImport } from './routes/api/google/cale
 import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callback'
 import { Route as ApiMobileAgendaRouteImport } from './routes/api/mobile/agenda'
 import { Route as ApiMobileEmailRouteImport } from './routes/api/mobile/email'
+import { Route as ApiMobileNotesRouteImport } from './routes/api/mobile/notes'
 import { Route as ApiMobileTasksRouteImport } from './routes/api/mobile/tasks'
 import { Route as ApiPushVapidKeyRouteImport } from './routes/api/push.vapid-key'
 import { Route as ApiMobileAuthLoginRouteImport } from './routes/api/mobile/auth/login'
@@ -244,6 +245,11 @@ const ApiMobileEmailRoute = ApiMobileEmailRouteImport.update({
   path: '/api/mobile/email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileNotesRoute = ApiMobileNotesRouteImport.update({
+  id: '/api/mobile/notes',
+  path: '/api/mobile/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobileTasksRoute = ApiMobileTasksRouteImport.update({
   id: '/api/mobile/tasks',
   path: '/api/mobile/tasks',
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/mobile/agenda': typeof ApiMobileAgendaRoute
   '/api/mobile/email': typeof ApiMobileEmailRouteWithChildren
+  '/api/mobile/notes': typeof ApiMobileNotesRoute
   '/api/mobile/tasks': typeof ApiMobileTasksRouteWithChildren
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
@@ -360,6 +367,7 @@ export interface FileRoutesByTo {
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/mobile/agenda': typeof ApiMobileAgendaRoute
   '/api/mobile/email': typeof ApiMobileEmailRouteWithChildren
+  '/api/mobile/notes': typeof ApiMobileNotesRoute
   '/api/mobile/tasks': typeof ApiMobileTasksRouteWithChildren
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
@@ -407,6 +415,7 @@ export interface FileRoutesById {
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/mobile/agenda': typeof ApiMobileAgendaRoute
   '/api/mobile/email': typeof ApiMobileEmailRouteWithChildren
+  '/api/mobile/notes': typeof ApiMobileNotesRoute
   '/api/mobile/tasks': typeof ApiMobileTasksRouteWithChildren
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/api/google/callback'
     | '/api/mobile/agenda'
     | '/api/mobile/email'
+    | '/api/mobile/notes'
     | '/api/mobile/tasks'
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
@@ -501,6 +511,7 @@ export interface FileRouteTypes {
     | '/api/google/callback'
     | '/api/mobile/agenda'
     | '/api/mobile/email'
+    | '/api/mobile/notes'
     | '/api/mobile/tasks'
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/api/google/callback'
     | '/api/mobile/agenda'
     | '/api/mobile/email'
+    | '/api/mobile/notes'
     | '/api/mobile/tasks'
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
@@ -594,6 +606,7 @@ export interface RootRouteChildren {
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
   ApiMobileAgendaRoute: typeof ApiMobileAgendaRoute
   ApiMobileEmailRoute: typeof ApiMobileEmailRouteWithChildren
+  ApiMobileNotesRoute: typeof ApiMobileNotesRoute
   ApiMobileTasksRoute: typeof ApiMobileTasksRouteWithChildren
   ApiMobileAuthLoginRoute: typeof ApiMobileAuthLoginRoute
 }
@@ -866,6 +879,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile/notes': {
+      id: '/api/mobile/notes'
+      path: '/api/mobile/notes'
+      fullPath: '/api/mobile/notes'
+      preLoaderRoute: typeof ApiMobileNotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile/tasks': {
       id: '/api/mobile/tasks'
       path: '/api/mobile/tasks'
@@ -987,6 +1007,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
   ApiMobileAgendaRoute: ApiMobileAgendaRoute,
   ApiMobileEmailRoute: ApiMobileEmailRouteWithChildren,
+  ApiMobileNotesRoute: ApiMobileNotesRoute,
   ApiMobileTasksRoute: ApiMobileTasksRouteWithChildren,
   ApiMobileAuthLoginRoute: ApiMobileAuthLoginRoute,
 }
