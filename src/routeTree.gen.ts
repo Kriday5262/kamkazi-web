@@ -52,6 +52,7 @@ import { Route as ApiMobileTasksRouteImport } from './routes/api/mobile/tasks'
 import { Route as ApiPushVapidKeyRouteImport } from './routes/api/push.vapid-key'
 import { Route as ApiMobileAuthLoginRouteImport } from './routes/api/mobile/auth/login'
 import { Route as ApiMobileEmailReadRouteImport } from './routes/api/mobile/email/read'
+import { Route as ApiMobilePushRegisterRouteImport } from './routes/api/mobile/push/register'
 import { Route as ApiMobileTasksCreateRouteImport } from './routes/api/mobile/tasks/create'
 import { Route as ApiMobileTasksToggleRouteImport } from './routes/api/mobile/tasks/toggle'
 
@@ -270,6 +271,11 @@ const ApiMobileEmailReadRoute = ApiMobileEmailReadRouteImport.update({
   path: '/read',
   getParentRoute: () => ApiMobileEmailRoute,
 } as any)
+const ApiMobilePushRegisterRoute = ApiMobilePushRegisterRouteImport.update({
+  id: '/api/mobile/push/register',
+  path: '/api/mobile/push/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobileTasksCreateRoute = ApiMobileTasksCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -325,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
   '/api/mobile/email/read': typeof ApiMobileEmailReadRoute
+  '/api/mobile/push/register': typeof ApiMobilePushRegisterRoute
   '/api/mobile/tasks/create': typeof ApiMobileTasksCreateRoute
   '/api/mobile/tasks/toggle': typeof ApiMobileTasksToggleRoute
 }
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
   '/api/mobile/email/read': typeof ApiMobileEmailReadRoute
+  '/api/mobile/push/register': typeof ApiMobilePushRegisterRoute
   '/api/mobile/tasks/create': typeof ApiMobileTasksCreateRoute
   '/api/mobile/tasks/toggle': typeof ApiMobileTasksToggleRoute
 }
@@ -420,6 +428,7 @@ export interface FileRoutesById {
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
   '/api/mobile/email/read': typeof ApiMobileEmailReadRoute
+  '/api/mobile/push/register': typeof ApiMobilePushRegisterRoute
   '/api/mobile/tasks/create': typeof ApiMobileTasksCreateRoute
   '/api/mobile/tasks/toggle': typeof ApiMobileTasksToggleRoute
 }
@@ -469,6 +478,7 @@ export interface FileRouteTypes {
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
     | '/api/mobile/email/read'
+    | '/api/mobile/push/register'
     | '/api/mobile/tasks/create'
     | '/api/mobile/tasks/toggle'
   fileRoutesByTo: FileRoutesByTo
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
     | '/api/mobile/email/read'
+    | '/api/mobile/push/register'
     | '/api/mobile/tasks/create'
     | '/api/mobile/tasks/toggle'
   id:
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
     | '/api/mobile/email/read'
+    | '/api/mobile/push/register'
     | '/api/mobile/tasks/create'
     | '/api/mobile/tasks/toggle'
   fileRoutesById: FileRoutesById
@@ -609,6 +621,7 @@ export interface RootRouteChildren {
   ApiMobileNotesRoute: typeof ApiMobileNotesRoute
   ApiMobileTasksRoute: typeof ApiMobileTasksRouteWithChildren
   ApiMobileAuthLoginRoute: typeof ApiMobileAuthLoginRoute
+  ApiMobilePushRegisterRoute: typeof ApiMobilePushRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -914,6 +927,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileEmailReadRouteImport
       parentRoute: typeof ApiMobileEmailRoute
     }
+    '/api/mobile/push/register': {
+      id: '/api/mobile/push/register'
+      path: '/api/mobile/push/register'
+      fullPath: '/api/mobile/push/register'
+      preLoaderRoute: typeof ApiMobilePushRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile/tasks/create': {
       id: '/api/mobile/tasks/create'
       path: '/create'
@@ -1010,6 +1030,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileNotesRoute: ApiMobileNotesRoute,
   ApiMobileTasksRoute: ApiMobileTasksRouteWithChildren,
   ApiMobileAuthLoginRoute: ApiMobileAuthLoginRoute,
+  ApiMobilePushRegisterRoute: ApiMobilePushRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

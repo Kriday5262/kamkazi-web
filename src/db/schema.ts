@@ -359,3 +359,21 @@ export const apiTokens = pgTable(
   },
   (t) => [index("api_tokens_user_idx").on(t.userId)],
 );
+
+/** Mobile app APNs device tokens — one row per device, per-kind prefs. */
+export const pushTokens = pgTable(
+  "push_tokens",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceToken: text("device_token").notNull(),
+    platform: text("platform").notNull().default("ios"),
+    /** Per-kind notification prefs: { email, tasks, events }. */
+    kinds: jsonb("kinds").notNull().default({ email: true, tasks: true, events: true }),
+    createdAtTs: timestamp("created_at_ts", { withTimezone: true }).notNull().defaultNow(),
+    updatedAtTs: timestamp("updated_at_ts", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("push_tokens_user_idx").on(t.userId)],
+);
