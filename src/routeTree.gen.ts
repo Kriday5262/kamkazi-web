@@ -49,6 +49,8 @@ import { Route as ApiMobileEmailRouteImport } from './routes/api/mobile/email'
 import { Route as ApiMobileTasksRouteImport } from './routes/api/mobile/tasks'
 import { Route as ApiPushVapidKeyRouteImport } from './routes/api/push.vapid-key'
 import { Route as ApiMobileAuthLoginRouteImport } from './routes/api/mobile/auth/login'
+import { Route as ApiMobileEmailReadRouteImport } from './routes/api/mobile/email/read'
+import { Route as ApiMobileTasksToggleRouteImport } from './routes/api/mobile/tasks/toggle'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -250,6 +252,16 @@ const ApiMobileAuthLoginRoute = ApiMobileAuthLoginRouteImport.update({
   path: '/api/mobile/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileEmailReadRoute = ApiMobileEmailReadRouteImport.update({
+  id: '/read',
+  path: '/read',
+  getParentRoute: () => ApiMobileEmailRoute,
+} as any)
+const ApiMobileTasksToggleRoute = ApiMobileTasksToggleRouteImport.update({
+  id: '/toggle',
+  path: '/toggle',
+  getParentRoute: () => ApiMobileTasksRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -288,10 +300,12 @@ export interface FileRoutesByFullPath {
   '/api/google/auth': typeof ApiGoogleAuthRoute
   '/api/google/calendars': typeof ApiGoogleCalendarsRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
-  '/api/mobile/email': typeof ApiMobileEmailRoute
-  '/api/mobile/tasks': typeof ApiMobileTasksRoute
+  '/api/mobile/email': typeof ApiMobileEmailRouteWithChildren
+  '/api/mobile/tasks': typeof ApiMobileTasksRouteWithChildren
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
+  '/api/mobile/email/read': typeof ApiMobileEmailReadRoute
+  '/api/mobile/tasks/toggle': typeof ApiMobileTasksToggleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -330,10 +344,12 @@ export interface FileRoutesByTo {
   '/api/google/auth': typeof ApiGoogleAuthRoute
   '/api/google/calendars': typeof ApiGoogleCalendarsRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
-  '/api/mobile/email': typeof ApiMobileEmailRoute
-  '/api/mobile/tasks': typeof ApiMobileTasksRoute
+  '/api/mobile/email': typeof ApiMobileEmailRouteWithChildren
+  '/api/mobile/tasks': typeof ApiMobileTasksRouteWithChildren
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
+  '/api/mobile/email/read': typeof ApiMobileEmailReadRoute
+  '/api/mobile/tasks/toggle': typeof ApiMobileTasksToggleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -373,10 +389,12 @@ export interface FileRoutesById {
   '/api/google/auth': typeof ApiGoogleAuthRoute
   '/api/google/calendars': typeof ApiGoogleCalendarsRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
-  '/api/mobile/email': typeof ApiMobileEmailRoute
-  '/api/mobile/tasks': typeof ApiMobileTasksRoute
+  '/api/mobile/email': typeof ApiMobileEmailRouteWithChildren
+  '/api/mobile/tasks': typeof ApiMobileTasksRouteWithChildren
   '/api/push/vapid-key': typeof ApiPushVapidKeyRoute
   '/api/mobile/auth/login': typeof ApiMobileAuthLoginRoute
+  '/api/mobile/email/read': typeof ApiMobileEmailReadRoute
+  '/api/mobile/tasks/toggle': typeof ApiMobileTasksToggleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -421,6 +439,8 @@ export interface FileRouteTypes {
     | '/api/mobile/tasks'
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
+    | '/api/mobile/email/read'
+    | '/api/mobile/tasks/toggle'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -463,6 +483,8 @@ export interface FileRouteTypes {
     | '/api/mobile/tasks'
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
+    | '/api/mobile/email/read'
+    | '/api/mobile/tasks/toggle'
   id:
     | '__root__'
     | '/'
@@ -505,6 +527,8 @@ export interface FileRouteTypes {
     | '/api/mobile/tasks'
     | '/api/push/vapid-key'
     | '/api/mobile/auth/login'
+    | '/api/mobile/email/read'
+    | '/api/mobile/tasks/toggle'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -544,8 +568,8 @@ export interface RootRouteChildren {
   ApiGoogleAuthRoute: typeof ApiGoogleAuthRoute
   ApiGoogleCalendarsRoute: typeof ApiGoogleCalendarsRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
-  ApiMobileEmailRoute: typeof ApiMobileEmailRoute
-  ApiMobileTasksRoute: typeof ApiMobileTasksRoute
+  ApiMobileEmailRoute: typeof ApiMobileEmailRouteWithChildren
+  ApiMobileTasksRoute: typeof ApiMobileTasksRouteWithChildren
   ApiMobileAuthLoginRoute: typeof ApiMobileAuthLoginRoute
 }
 
@@ -831,6 +855,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileAuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile/email/read': {
+      id: '/api/mobile/email/read'
+      path: '/read'
+      fullPath: '/api/mobile/email/read'
+      preLoaderRoute: typeof ApiMobileEmailReadRouteImport
+      parentRoute: typeof ApiMobileEmailRoute
+    }
+    '/api/mobile/tasks/toggle': {
+      id: '/api/mobile/tasks/toggle'
+      path: '/toggle'
+      fullPath: '/api/mobile/tasks/toggle'
+      preLoaderRoute: typeof ApiMobileTasksToggleRouteImport
+      parentRoute: typeof ApiMobileTasksRoute
+    }
   }
 }
 
@@ -844,6 +882,30 @@ const ApiPushRouteChildren: ApiPushRouteChildren = {
 
 const ApiPushRouteWithChildren =
   ApiPushRoute._addFileChildren(ApiPushRouteChildren)
+
+interface ApiMobileEmailRouteChildren {
+  ApiMobileEmailReadRoute: typeof ApiMobileEmailReadRoute
+}
+
+const ApiMobileEmailRouteChildren: ApiMobileEmailRouteChildren = {
+  ApiMobileEmailReadRoute: ApiMobileEmailReadRoute,
+}
+
+const ApiMobileEmailRouteWithChildren = ApiMobileEmailRoute._addFileChildren(
+  ApiMobileEmailRouteChildren,
+)
+
+interface ApiMobileTasksRouteChildren {
+  ApiMobileTasksToggleRoute: typeof ApiMobileTasksToggleRoute
+}
+
+const ApiMobileTasksRouteChildren: ApiMobileTasksRouteChildren = {
+  ApiMobileTasksToggleRoute: ApiMobileTasksToggleRoute,
+}
+
+const ApiMobileTasksRouteWithChildren = ApiMobileTasksRoute._addFileChildren(
+  ApiMobileTasksRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -882,8 +944,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGoogleAuthRoute: ApiGoogleAuthRoute,
   ApiGoogleCalendarsRoute: ApiGoogleCalendarsRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
-  ApiMobileEmailRoute: ApiMobileEmailRoute,
-  ApiMobileTasksRoute: ApiMobileTasksRoute,
+  ApiMobileEmailRoute: ApiMobileEmailRouteWithChildren,
+  ApiMobileTasksRoute: ApiMobileTasksRouteWithChildren,
   ApiMobileAuthLoginRoute: ApiMobileAuthLoginRoute,
 }
 export const routeTree = rootRouteImport
