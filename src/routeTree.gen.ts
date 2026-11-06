@@ -19,6 +19,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TimesheetRouteImport } from './routes/timesheet'
+import { Route as ApiAppleRemindersRouteImport } from './routes/api/apple-reminders'
 import { Route as ApiAttachmentsRouteImport } from './routes/api/attachments'
 import { Route as ApiBriefingRouteImport } from './routes/api/briefing'
 import { Route as ApiCalendarRouteImport } from './routes/api/calendar'
@@ -104,6 +105,11 @@ const TermsRoute = TermsRouteImport.update({
 const TimesheetRoute = TimesheetRouteImport.update({
   id: '/timesheet',
   path: '/timesheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAppleRemindersRoute = ApiAppleRemindersRouteImport.update({
+  id: '/api/apple-reminders',
+  path: '/api/apple-reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAttachmentsRoute = ApiAttachmentsRouteImport.update({
@@ -298,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/timesheet': typeof TimesheetRoute
+  '/api/apple-reminders': typeof ApiAppleRemindersRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
@@ -346,6 +353,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/timesheet': typeof TimesheetRoute
+  '/api/apple-reminders': typeof ApiAppleRemindersRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
@@ -395,6 +403,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/timesheet': typeof TimesheetRoute
+  '/api/apple-reminders': typeof ApiAppleRemindersRoute
   '/api/attachments': typeof ApiAttachmentsRoute
   '/api/briefing': typeof ApiBriefingRoute
   '/api/calendar': typeof ApiCalendarRoute
@@ -445,6 +454,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terms'
     | '/timesheet'
+    | '/api/apple-reminders'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terms'
     | '/timesheet'
+    | '/api/apple-reminders'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
@@ -541,6 +552,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terms'
     | '/timesheet'
+    | '/api/apple-reminders'
     | '/api/attachments'
     | '/api/briefing'
     | '/api/calendar'
@@ -590,6 +602,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TermsRoute: typeof TermsRoute
   TimesheetRoute: typeof TimesheetRoute
+  ApiAppleRemindersRoute: typeof ApiAppleRemindersRoute
   ApiAttachmentsRoute: typeof ApiAttachmentsRoute
   ApiBriefingRoute: typeof ApiBriefingRoute
   ApiCalendarRoute: typeof ApiCalendarRoute
@@ -694,6 +707,13 @@ declare module '@tanstack/react-router' {
       path: '/timesheet'
       fullPath: '/timesheet'
       preLoaderRoute: typeof TimesheetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apple-reminders': {
+      id: '/api/apple-reminders'
+      path: '/api/apple-reminders'
+      fullPath: '/api/apple-reminders'
+      preLoaderRoute: typeof ApiAppleRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/attachments': {
@@ -999,6 +1019,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TermsRoute: TermsRoute,
   TimesheetRoute: TimesheetRoute,
+  ApiAppleRemindersRoute: ApiAppleRemindersRoute,
   ApiAttachmentsRoute: ApiAttachmentsRoute,
   ApiBriefingRoute: ApiBriefingRoute,
   ApiCalendarRoute: ApiCalendarRoute,

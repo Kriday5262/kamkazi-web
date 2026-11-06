@@ -82,9 +82,15 @@ export const tasks = pgTable(
       >()
       .notNull()
       .default([]),
-    /** Optional deep-link metadata (e.g. source email). */
+    /** Optional deep-link metadata (e.g. source email, Apple Reminders origin). */
     meta: jsonb("meta")
-      .$type<{ email?: { accountId: string; id: string; subject: string; from: string; date: string } } | undefined>()
+      .$type<
+        | {
+            email?: { accountId: string; id: string; subject: string; from: string; date: string };
+            apple?: { uid: string; href: string };
+          }
+        | undefined
+      >()
       .default(undefined),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),

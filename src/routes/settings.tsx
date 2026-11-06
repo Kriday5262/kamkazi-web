@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/app-shell";
 import { userName } from "@/data/seed";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { AppleRemindersCard } from "@/components/apple-reminders-card";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -231,6 +232,10 @@ function SettingsPage() {
           <Row label="Show declined events">
             <Toggle checked={false} onChange={() => undefined} label="Show declined events" />
           </Row>
+        </Group>
+
+        <Group label="Apple Reminders" open={open} setOpen={setOpen}>
+          <AppleRemindersCard onToast={toast} />
         </Group>
 
         <Group label="Notifications" open={open} setOpen={setOpen}>

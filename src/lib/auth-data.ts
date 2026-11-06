@@ -20,6 +20,8 @@ import {
   userSettings,
 } from "@/db/schema";
 import { requireUid, requestMiddleware, sessionFromRequest } from "@/request-context";
+import { getAppleConfigForUser } from "@/server/apple-reminders-sync.server";
+import { decryptSecret } from "@/server/crypto.server";
 import { calendarSources, timesheetEntries, timesheetSummaries } from "@/db/schema";
 import type {
   CalendarEvent,
@@ -250,7 +252,28 @@ export const deleteTaskFn = createServerFn({ method: "POST" })
   .validator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
     const uid = await requireUid(context);
+    // Apple-synced task? Also cancel it on Apple (delete → Apple cancel).
+    const row = (
+      await db.select().from(tasks).where(and(eq(tasks.id, data.id), eq(tasks.userId, uid))).limit(1)
+    )[0];
     await db.delete(tasks).where(and(eq(tasks.id, data.id), eq(tasks.userId, uid)));
+    if (row) {
+      const m = (row.meta ?? null) as { apple?: { uid?: string; href?: string } } | null;
+      if (m?.apple?.href) {
+        try {
+          const cfg = await getAppleConfigForUser(uid);
+          if (cfg) {
+            const { deleteAppleTodo } = await import("@/server/apple-reminders-sync.server");
+            await deleteAppleTodo(m.apple.href, {
+              username: cfg.appleId,
+              password: decryptSecret(cfg.appPasswordEnc),
+            });
+          }
+        } catch {
+          // Apple deletion is best-effort; the pull pass reconciles the rest.
+        }
+      }
+    }
     return { ok: true };
   });
 
