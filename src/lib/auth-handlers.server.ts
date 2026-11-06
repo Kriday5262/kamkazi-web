@@ -13,7 +13,14 @@ import { setCookie } from "@tanstack/react-start/server";
 
 export type LoginInput = { username: string; password: string };
 
-export async function loginHandler(data: LoginInput) {
+function isSecureRequest(request?: Request): boolean {
+  if (!request) return process.env["NODE_ENV"] === "production";
+  const proto = request.headers.get("x-forwarded-proto");
+  if (proto) return proto === "https";
+  return request.url.startsWith("https:");
+}
+
+export async function loginHandler(data: LoginInput, request?: Request) {
   const { db } = await import("@/db");
   const { users } = await import("@/db/schema");
   const { eq } = await import("drizzle-orm");
@@ -39,13 +46,18 @@ export async function loginHandler(data: LoginInput) {
     httpOnly: true,
     sameSite: "lax",
     maxAge: 30 * 24 * 60 * 60, // 30 days
-    secure: process.env["NODE_ENV"] === "production",
+    secure: isSecureRequest(request),
   });
   return { ok: true as const };
 }
 
-export async function logoutHandler() {
+export async function logoutHandler(request?: Request) {
   const { SESSION_COOKIE_NAME } = await import("@/db/session");
-  setCookie(SESSION_COOKIE_NAME, "", { path: "/", httpOnly: true, maxAge: 0 });
+  setCookie(SESSION_COOKIE_NAME, "", {
+    path: "/",
+    httpOnly: true,
+    maxAge: 0,
+    secure: isSecureRequest(request),
+  });
   return { ok: true as const };
 }

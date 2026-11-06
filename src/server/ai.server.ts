@@ -73,7 +73,7 @@ export function resolveProvider(settings: AiSettings): ResolvedProvider {
   // hermes (default)
   return {
     provider,
-    baseUrl: process.env["HERMES_BASE_URL"] || "http://192.168.29.188:11436/v1",
+    baseUrl: process.env["HERMES_BASE_URL"] || "http://192.168.29.188:11434/v1",
     model: settings.aiModel || "glm-5.3-flash:cloud",
   };
 }

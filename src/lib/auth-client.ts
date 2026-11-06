@@ -25,14 +25,16 @@ export const getSession = createServerFn({ method: "GET" })
 export const login = createServerFn({ method: "POST" })
   .middleware([requestMiddleware])
   .validator((input: { username: string; password: string }) => input)
-  .handler(async (ctx) => {
+  .handler(async ({ data, context }) => {
     // Delegate to the server-only handler so all cookie/crypto/db imports stay
     // out of the client bundle.
     const { loginHandler } = await import("@/lib/auth-handlers.server");
-    return loginHandler(ctx.data);
+    return loginHandler(data, context.request);
   });
 
-export const logout = createServerFn({ method: "POST" }).handler(async () => {
-  const { logoutHandler } = await import("@/lib/auth-handlers.server");
-  return logoutHandler();
-});
+export const logout = createServerFn({ method: "POST" })
+  .middleware([requestMiddleware])
+  .handler(async ({ context }) => {
+    const { logoutHandler } = await import("@/lib/auth-handlers.server");
+    return logoutHandler(context.request);
+  });
